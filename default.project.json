@@ -1,0 +1,34 @@
+{
+  "name": "AuraFarmTycoon",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "SyncState": { "$className": "RemoteEvent" },
+        "Notify": { "$className": "RemoteEvent" },
+        "RollAura": { "$className": "RemoteEvent" },
+        "RollResult": { "$className": "RemoteEvent" },
+        "EquipAura": { "$className": "RemoteEvent" },
+        "RequestRebirth": { "$className": "RemoteEvent" },
+        "ClaimDaily": { "$className": "RemoteEvent" },
+        "RedeemCode": { "$className": "RemoteEvent" }
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
