@@ -15,7 +15,11 @@
         "EquipAura": { "$className": "RemoteEvent" },
         "RequestRebirth": { "$className": "RemoteEvent" },
         "ClaimDaily": { "$className": "RemoteEvent" },
-        "RedeemCode": { "$className": "RemoteEvent" }
+        "RedeemCode": { "$className": "RemoteEvent" },
+        "SetAutoRoll": { "$className": "RemoteEvent" },
+        "SetPose": { "$className": "RemoteEvent" },
+        "ClaimQuest": { "$className": "RemoteEvent" },
+        "ClaimGift": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {

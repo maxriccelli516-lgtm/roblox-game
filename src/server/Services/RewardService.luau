@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local BoostService = require(script.Parent.BoostService)
 local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
 
@@ -15,6 +16,37 @@ local function notify(player: Player, text: string, kind: string?)
 	Remotes.Notify:FireClient(player, text, kind or "info")
 end
 
+-- Een beloning uitdelen. reward = { Kind = "Aura" | "Luck" | "Double", Minutes = n }
+function RewardService.Describe(player: Player?, reward): string
+	if reward.Kind == "Luck" then
+		return reward.Minutes .. " min 2x Luck"
+	elseif reward.Kind == "Double" then
+		return reward.Minutes .. " min 2x Aura"
+	end
+	if player then
+		return "+" .. Format.Number(RewardService.AuraAmount(player, reward.Minutes)) .. " Aura"
+	end
+	return reward.Minutes .. " min of Aura"
+end
+
+function RewardService.AuraAmount(player: Player, minutes: number): number
+	local data = DataService.Get(player)
+	local minimum = 150 * ((data and data.Rebirths or 0) + 1)
+	return math.floor(math.max(minimum, Economy.BaseIncomePerSecond(player) * minutes * 60))
+end
+
+function RewardService.Grant(player: Player, reward, title: string)
+	local text = RewardService.Describe(player, reward)
+	if reward.Kind == "Luck" then
+		BoostService.Add(player, "Luck", reward.Minutes)
+	elseif reward.Kind == "Double" then
+		BoostService.Add(player, "Double", reward.Minutes)
+	else
+		DataService.AddAura(player, RewardService.AuraAmount(player, reward.Minutes))
+	end
+	notify(player, title .. ": " .. text .. "!", "rare")
+end
+
 function RewardService.GiveOfflineEarnings(player: Player)
 	local data = DataService.Get(player)
 	if not data or data.LastOnline <= 0 then
@@ -24,7 +56,7 @@ function RewardService.GiveOfflineEarnings(player: Player)
 	if seconds < 60 then
 		return
 	end
-	local amount = math.floor(Economy.IncomePerSecond(player) * seconds * Config.OfflineRate)
+	local amount = math.floor(Economy.BaseIncomePerSecond(player) * seconds * Config.OfflineRate)
 	if amount > 0 then
 		DataService.AddAura(player, amount)
 		notify(player, "Welcome back! Your farm made " .. Format.Number(amount) .. " Aura while you were away", "rare")
@@ -52,7 +84,7 @@ function RewardService.ClaimDaily(player: Player)
 	end
 	data.LastDaily = os.time()
 	local streak = math.min(data.DailyStreak, 7)
-	local amount = math.floor(math.max(250 * streak, Economy.IncomePerSecond(player) * 120 * streak))
+	local amount = math.floor(math.max(250 * streak, Economy.BaseIncomePerSecond(player) * 120 * streak))
 	DataService.AddAura(player, amount)
 	notify(player, "Day " .. data.DailyStreak .. " reward: +" .. Format.Number(amount) .. " Aura!", "rare")
 end

@@ -24,6 +24,10 @@ local TEMPLATE = {
 	RedeemedCodes = {},
 	ProcessedReceipts = {},
 	RollCount = 0,
+	PityCounter = 0,
+	Boosts = {},
+	Quests = { Day = 0, List = {}, AllClaimed = false },
+	StarterPackBought = false,
 }
 
 local store: DataStore? = nil

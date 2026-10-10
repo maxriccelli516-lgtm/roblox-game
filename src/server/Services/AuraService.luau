@@ -6,7 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Auras = require(ReplicatedStorage.Shared.Auras)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Bus = require(script.Parent.Bus)
 local DataService = require(script.Parent.DataService)
+local Economy = require(script.Parent.Economy)
 
 local Remotes = ReplicatedStorage.Remotes
 
@@ -112,7 +114,7 @@ function AuraService.ApplyVisual(player: Player)
 	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
-	label.Text = aura.Name
+	label.Text = if player:GetAttribute("Pass_VIP") then "[VIP] " .. aura.Name else aura.Name
 	label.TextColor3 = if aura.Name == "Void Aura" then Color3.fromRGB(190, 120, 255) else aura.Color
 	label.Parent = tag
 	local stroke = Instance.new("UIStroke")
@@ -121,9 +123,9 @@ function AuraService.ApplyVisual(player: Player)
 end
 
 local function giveAura(player: Player, data, aura)
+	local discoveredBefore = Economy.DiscoveredCount(data)
 	local isNew = data.OwnedAuras[aura.Name] == nil
 	data.OwnedAuras[aura.Name] = (data.OwnedAuras[aura.Name] or 0) + 1
-	data.RollCount += 1
 
 	local current = Auras.ByName[data.EquippedAura]
 	local equipped = false
@@ -132,40 +134,79 @@ local function giveAura(player: Player, data, aura)
 		equipped = true
 		AuraService.ApplyVisual(player)
 	end
+
+	-- Nieuwe Index-trede gehaald?
+	local discoveredAfter = Economy.DiscoveredCount(data)
+	for _, tier in Config.IndexTiers do
+		if discoveredBefore < tier.Count and discoveredAfter >= tier.Count then
+			task.delay(1.6, notify, player, "Aura Index " .. tier.Count .. "/" .. #Auras.List .. "! Permanent +" .. math.floor(tier.Luck * 100) .. "% Luck", "rare")
+		end
+	end
 	return isNew, equipped
 end
 
-function AuraService.Roll(player: Player, free: boolean)
+function AuraService.GiveExclusive(player: Player, auraName: string)
+	local data = DataService.Get(player)
+	local aura = Auras.ByName[auraName]
+	if not data or not aura then
+		return
+	end
+	giveAura(player, data, aura)
+	DataService.Changed(player)
+end
+
+function AuraService.FreeRollWait(data): number
+	return math.max(0, data.LastFreeRoll + Config.FreeRollCooldown - os.time())
+end
+
+function AuraService.Roll(player: Player, free: boolean, silentFail: boolean?): boolean
 	local data = DataService.Get(player)
 	if not data then
-		return
+		return false
 	end
 	local now = os.clock()
 	if lastRoll[player] and now - lastRoll[player] < Config.RollCooldown then
-		return
+		return false
 	end
 
 	if free then
-		local waitLeft = data.LastFreeRoll + Config.FreeRollCooldown - os.time()
+		local waitLeft = AuraService.FreeRollWait(data)
 		if waitLeft > 0 then
-			notify(player, "Free roll ready in " .. Format.Time(waitLeft), "error")
-			return
+			if not silentFail then
+				notify(player, "Free roll ready in " .. Format.Time(waitLeft), "error")
+			end
+			return false
 		end
 		data.LastFreeRoll = os.time()
 	else
 		local cost = Config.RollCost(data.Rebirths)
 		if data.Aura < cost then
-			notify(player, "You need " .. Format.Number(cost) .. " Aura to roll!", "error")
-			return
+			if not silentFail then
+				notify(player, "You need " .. Format.Number(cost) .. " Aura to roll!", "error")
+			end
+			return false
 		end
 		data.Aura -= cost
 	end
 	lastRoll[player] = now
 
-	local aura = Auras.Roll(1, rng)
+	-- Pity: na veel pech krijg je gegarandeerd een zeldzame aura
+	data.RollCount += 1
+	data.PityCounter += 1
+	local aura
+	if data.PityCounter >= Config.PityRolls then
+		aura = Auras.Roll(Economy.GetLuck(player), rng, Config.PityMinChance)
+	else
+		aura = Auras.Roll(Economy.GetLuck(player), rng)
+	end
+	if aura.Chance >= Config.PityMinChance then
+		data.PityCounter = 0
+	end
+
 	local isNew, equipped = giveAura(player, data, aura)
 	DataService.Changed(player)
 	Remotes.RollResult:FireClient(player, aura.Name, isNew, equipped)
+	Bus.Fire("Rolled", player, aura, free)
 
 	if aura.Chance >= Config.AnnounceChance then
 		-- Even wachten zodat de speler zelf eerst de animatie ziet
@@ -175,6 +216,7 @@ function AuraService.Roll(player: Player, free: boolean)
 			end
 		end)
 	end
+	return true
 end
 
 function AuraService.Equip(player: Player, auraName: string)
@@ -194,8 +236,35 @@ function AuraService.Init()
 	Remotes.EquipAura.OnServerEvent:Connect(function(player, auraName)
 		AuraService.Equip(player, auraName)
 	end)
+	Remotes.SetAutoRoll.OnServerEvent:Connect(function(player, enabled)
+		local data = DataService.Get(player)
+		if enabled == true and data and data.Rebirths < Config.AutoRollRebirths then
+			notify(player, "Auto Roll unlocks after your first Rebirth!", "error")
+			return
+		end
+		player:SetAttribute("AutoRoll", enabled == true)
+		DataService.Changed(player)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRoll[player] = nil
+	end)
+
+	-- Auto Roll: gebruikt eerst de gratis roll, anders Aura. Stopt als je te weinig Aura hebt.
+	task.spawn(function()
+		while true do
+			task.wait(Config.AutoRollInterval)
+			for _, player in Players:GetPlayers() do
+				local data = DataService.Get(player)
+				if player:GetAttribute("AutoRoll") and data then
+					local rolled = AuraService.FreeRollWait(data) <= 0 and AuraService.Roll(player, true, true)
+					if not rolled and not AuraService.Roll(player, false, true) and data.Aura < Config.RollCost(data.Rebirths) then
+						player:SetAttribute("AutoRoll", false)
+						notify(player, "Auto Roll stopped: not enough Aura", "error")
+						DataService.Changed(player)
+					end
+				end
+			end
+		end
 	end)
 end
 

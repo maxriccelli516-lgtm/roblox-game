@@ -54,16 +54,85 @@ Config.Codes = {
 }
 
 -- Gamepasses: vul hier het Id in nadat je ze op Roblox hebt aangemaakt (0 = staat uit)
+-- Order = volgorde in de shop
 Config.GamePasses = {
-	DoubleAura = { Id = 0, Name = "2x Aura", Description = "Verdubbelt al je Aura voor altijd" },
-	AutoCollect = { Id = 0, Name = "Auto Collect", Description = "Je Aura wordt vanzelf opgehaald" },
-	FastDroppers = { Id = 0, Name = "Fast Generators", Description = "Je generators werken 25% sneller" },
+	VIP = { Id = 0, Order = 1, Name = "VIP", Description = "+20% Aura, faster Aura Meter, 2 extra poses, VIP tag" },
+	DoubleAura = { Id = 0, Order = 2, Name = "2x Aura", Description = "Double ALL your Aura forever" },
+	AutoCollect = { Id = 0, Order = 3, Name = "Auto Collect", Description = "Your Aura is collected automatically" },
+	FastDroppers = { Id = 0, Order = 4, Name = "Fast Generators", Description = "Your generators work 25% faster" },
+}
+Config.VipBonus = 1.2
+
+-- Developer products (steeds opnieuw te kopen)
+-- Kind: "Aura" = geeft X minuten van je inkomen (verborgen voor landen met loot box regels,
+-- omdat je met Aura kunt rollen), "Boost" = tijdelijke 2x Aura, "Starter" = eenmalig startpakket
+Config.DevProducts = {
+	StarterPack = { Id = 0, Order = 1, Kind = "Starter", Name = "Starter Pack (one time)", Description = "30 min 2x Aura + exclusive Starter Spark aura", BoostMinutes = 30 },
+	DoubleBoost = { Id = 0, Order = 2, Kind = "Boost", Name = "2x Aura Boost", Description = "Double Aura for 15 minutes (stacks)", BoostMinutes = 15 },
+	AuraPackSmall = { Id = 0, Order = 3, Kind = "Aura", Name = "Aura Pack", Description = "10 minutes of your Aura income", Minutes = 10, Minimum = 1000 },
+	AuraPackBig = { Id = 0, Order = 4, Kind = "Aura", Name = "Mega Aura Pack", Description = "60 minutes of your Aura income", Minutes = 60, Minimum = 10000 },
 }
 
--- Developer products (steeds opnieuw te kopen): geven X minuten van je inkomen
-Config.DevProducts = {
-	AuraPackSmall = { Id = 0, Name = "Aura Pack", Minutes = 10, Minimum = 1000 },
-	AuraPackBig = { Id = 0, Name = "Mega Aura Pack", Minutes = 60, Minimum = 10000 },
+-- Aura farmen met poses (zoals de boat kid): stil staan in een pose vult je Aura Meter
+Config.MeterFillSeconds = 30 -- zo lang poseren voor een volle meter
+Config.PeakAuraSeconds = 45 -- zo lang duurt PEAK AURA
+Config.PeakAuraMultiplier = 2
+Config.Poses = {
+	{ Id = "BoatKid", Name = "Boat Kid" },
+	{ Id = "SkyPoint", Name = "Sky Point" },
+	{ Id = "Sigma", Name = "Sigma Stare", Vip = true },
+	{ Id = "Hero", Name = "Main Character", Vip = true },
+}
+
+-- Server events (zoals biomes in Sol's RNG): af en toe iets speciaals voor iedereen
+Config.EventEvery = 8 * 60 -- seconden tussen events
+Config.EventDuration = 2 * 60
+Config.Events = {
+	AuraStorm = { Name = "AURA STORM", Description = "2x Luck for everyone!", Luck = 2 },
+	GoldenHour = { Name = "GOLDEN HOUR", Description = "2x Aura for everyone!", Aura = 2 },
+	VoidNight = { Name = "VOID NIGHT", Description = "3x Luck! Void Aura can appear...", Luck = 3 },
+	SpeedRush = { Name = "SPEED RUSH", Description = "Generators work 2x faster!", Speed = 2 },
+}
+
+-- Geluk
+Config.LuckBoost = 2 -- tijdelijke luck boost (alleen te verdienen, niet te kopen)
+Config.PityRolls = 75 -- na zoveel rolls zonder zeldzame aura krijg je er gegarandeerd een
+Config.PityMinChance = 128 -- "zeldzaam" = 1 in 128 of zeldzamer
+Config.AutoRollRebirths = 1 -- Auto Roll gaat open na de eerste rebirth
+Config.AutoRollInterval = 2
+
+-- Aura Index: verzamel aura's voor een blijvende luck bonus
+Config.IndexTiers = {
+	{ Count = 3, Luck = 0.1 },
+	{ Count = 6, Luck = 0.1 },
+	{ Count = 9, Luck = 0.2 },
+	{ Count = 12, Luck = 0.3 },
+}
+
+-- Vrienden in dezelfde server geven een bonus
+Config.FriendBonus = 0.1
+Config.MaxFriendBonus = 3
+
+-- Dagelijkse quests: Reward = minuten inkomen, of een boost
+Config.QuestsPerDay = 3
+Config.QuestPool = {
+	{ Type = "Collect", Text = "Collect %s Aura", IncomeMinutes = 8, Reward = { Kind = "Aura", Minutes = 5 } },
+	{ Type = "Roll", Text = "Roll %s auras", Goal = 15, Reward = { Kind = "Luck", Minutes = 5 } },
+	{ Type = "Buy", Text = "Unlock %s items", Goal = 3, Reward = { Kind = "Aura", Minutes = 6 } },
+	{ Type = "Pose", Text = "Aura farm for %s seconds", Goal = 90, Reward = { Kind = "Double", Minutes = 5 } },
+	{ Type = "Peak", Text = "Reach PEAK AURA %s times", Goal = 2, Reward = { Kind = "Luck", Minutes = 8 } },
+	{ Type = "FreeRoll", Text = "Use %s free rolls", Goal = 5, Reward = { Kind = "Double", Minutes = 5 } },
+}
+Config.QuestAllDoneReward = { Kind = "Luck", Minutes = 10 }
+
+-- Cadeaus voor lang spelen (minuten in deze sessie)
+Config.PlaytimeGifts = {
+	{ Minutes = 3, Reward = { Kind = "Aura", Minutes = 3 } },
+	{ Minutes = 8, Reward = { Kind = "Luck", Minutes = 5 } },
+	{ Minutes = 15, Reward = { Kind = "Aura", Minutes = 8 } },
+	{ Minutes = 25, Reward = { Kind = "Double", Minutes = 10 } },
+	{ Minutes = 40, Reward = { Kind = "Aura", Minutes = 15 } },
+	{ Minutes = 60, Reward = { Kind = "Luck", Minutes = 15 } },
 }
 
 -- Plekken voor de koopknoppen (lokale X, Z binnen het plot)

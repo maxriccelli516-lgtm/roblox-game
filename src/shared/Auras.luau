@@ -17,26 +17,62 @@ Auras.List = {
 	{ Name = "Void Aura", Chance = 10000, Multiplier = 12, Color = Color3.fromRGB(25, 0, 40) },
 }
 
+-- Alleen te krijgen met het Starter Pack (niet te rollen)
+Auras.Exclusive = {
+	{ Name = "Starter Spark", Chance = 0, Multiplier = 1.25, Color = Color3.fromRGB(120, 255, 230), Exclusive = true },
+}
+
 Auras.ByName = {}
+for _, aura in Auras.Exclusive do
+	aura.Index = 0
+	Auras.ByName[aura.Name] = aura
+end
 for index, aura in Auras.List do
 	aura.Index = index
 	Auras.ByName[aura.Name] = aura
 end
 
 -- Rol een aura: begin bij de zeldzaamste en probeer elke kans. Lukt niets, dan krijg je Basic Glow.
-function Auras.Roll(luck: number?, rng: Random?)
+-- minChance: alleen aura's die minstens zo zeldzaam zijn (voor de gegarandeerde pity roll)
+function Auras.Roll(luck: number?, rng: Random?, minChance: number?)
 	local useLuck = luck or 1
 	local random = rng or Random.new()
+	local floor = minChance or 0
 	for index = #Auras.List, 2, -1 do
 		local aura = Auras.List[index]
-		if random:NextNumber() < useLuck / aura.Chance then
+		if aura.Chance >= floor and random:NextNumber() < useLuck / aura.Chance then
 			return aura
+		end
+	end
+	if floor > 0 then
+		for _, aura in Auras.List do
+			if aura.Chance >= floor then
+				return aura
+			end
 		end
 	end
 	return Auras.List[1]
 end
 
+-- De echte kans in procenten voor elke aura met deze luck (telt op tot 100)
+function Auras.Odds(luck: number?): { [string]: number }
+	local useLuck = luck or 1
+	local odds = {}
+	local remaining = 1
+	for index = #Auras.List, 2, -1 do
+		local aura = Auras.List[index]
+		local p = math.min(1, useLuck / aura.Chance)
+		odds[aura.Name] = remaining * p * 100
+		remaining *= 1 - p
+	end
+	odds[Auras.List[1].Name] = remaining * 100
+	return odds
+end
+
 function Auras.RarityText(aura): string
+	if aura.Exclusive then
+		return "Exclusive"
+	end
 	if aura.Chance <= 1 then
 		return "Common"
 	end

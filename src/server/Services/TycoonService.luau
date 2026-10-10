@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Builder)
+local Bus = require(script.Parent.Bus)
 local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
 
@@ -594,6 +595,7 @@ function TycoonService.Collect(player: Player, silent: boolean?)
 	updateStoredLabel(plot)
 	if amount > 0 then
 		DataService.AddAura(player, amount)
+		Bus.Fire("Collected", player, amount)
 		if not silent then
 			notify(player, "+" .. Format.Number(amount) .. " Aura", "collect")
 		end
@@ -619,6 +621,7 @@ function TycoonService.Purchase(player: Player, itemId: string)
 	buildItem(plot, item, plot.Session)
 	refreshButtons(plot)
 	DataService.Changed(player)
+	Bus.Fire("Bought", player, item)
 	notify(player, "Unlocked " .. item.Name .. "!", "success")
 end
 

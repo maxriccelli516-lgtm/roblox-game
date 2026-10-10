@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local SocialService = game:GetService("SocialService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
@@ -21,6 +22,7 @@ local Colors = Ui.Colors
 local state = nil
 local stateReceivedAt = os.clock()
 local rolling = false
+local badges: { [string]: TextLabel } = {}
 
 ------------------------------------------------------------------------
 -- Geluid
@@ -91,6 +93,130 @@ local incomeLabel = Ui.Label({
 	TextColor3 = Colors.SubText,
 	Parent = hud,
 })
+
+-- Actieve boosts onder de teller
+local chipRow = Ui.Create("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 94),
+	Size = UDim2.fromOffset(600, 30),
+	BackgroundTransparency = 1,
+	Parent = screen,
+})
+Ui.Create("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Padding = UDim.new(0, 6),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = chipRow,
+})
+local chips = {}
+local function makeChip(name: string, order: number, color: Color3)
+	local chip = Ui.Label({
+		Size = UDim2.fromOffset(140, 28),
+		BackgroundTransparency = 0,
+		BackgroundColor3 = color,
+		Text = "",
+		LayoutOrder = order,
+		Visible = false,
+		Parent = chipRow,
+	})
+	Ui.Corner(8).Parent = chip
+	chips[name] = chip
+end
+makeChip("Peak", 1, Color3.fromRGB(200, 150, 30))
+makeChip("Double", 2, Color3.fromRGB(40, 150, 80))
+makeChip("Luck", 3, Color3.fromRGB(60, 120, 220))
+makeChip("Friends", 4, Color3.fromRGB(200, 80, 140))
+
+-- Event banner
+local eventBanner = Ui.Label({
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 128),
+	Size = UDim2.fromOffset(460, 30),
+	BackgroundTransparency = 0.2,
+	BackgroundColor3 = Colors.Panel,
+	Text = "",
+	TextColor3 = Colors.SubText,
+	Parent = screen,
+})
+Ui.Corner(8).Parent = eventBanner
+
+-- Aura farm knop + Aura Meter onderaan
+local selectedPose = 1
+local poseBar = Ui.Create("Frame", {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -16),
+	Size = UDim2.fromOffset(400, 96),
+	BackgroundColor3 = Colors.Panel,
+	BackgroundTransparency = 0.15,
+	Parent = screen,
+}, { Ui.Corner(14), Ui.Stroke(Colors.Accent, 2) })
+local meterBack = Ui.Create("Frame", {
+	Position = UDim2.fromOffset(8, 8),
+	Size = UDim2.new(1, -16, 0, 22),
+	BackgroundColor3 = Colors.PanelLight,
+	Parent = poseBar,
+}, { Ui.Corner(8) })
+local meterFill = Ui.Create("Frame", {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Colors.Gold,
+	Parent = meterBack,
+}, { Ui.Corner(8) })
+local meterLabel = Ui.Label({
+	Size = UDim2.fromScale(1, 1),
+	Text = "AURA METER",
+	ZIndex = 2,
+	Parent = meterBack,
+})
+local function poseAt(index: number)
+	return Config.Poses[(index - 1) % #Config.Poses + 1]
+end
+local function poseLocked(pose): boolean
+	return pose.Vip == true and not (state and state.Passes.VIP)
+end
+local farmButton = Ui.Button({
+	Position = UDim2.fromOffset(8, 38),
+	Size = UDim2.new(0.62, -12, 0, 50),
+	Text = "🕺 AURA FARM",
+	BackgroundColor3 = Color3.fromRGB(130, 70, 230),
+	Parent = poseBar,
+}, function()
+	if player:GetAttribute("Posing") then
+		Remotes.SetPose:FireServer(nil)
+		return
+	end
+	local pose = poseAt(selectedPose)
+	if poseLocked(pose) then
+		local vip = Config.GamePasses.VIP
+		if vip.Id ~= 0 then
+			MarketplaceService:PromptGamePassPurchase(player, vip.Id)
+		end
+		return
+	end
+	Remotes.SetPose:FireServer(pose.Id)
+end)
+local poseButton = Ui.Button({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -8, 0, 38),
+	Size = UDim2.new(0.38, -4, 0, 50),
+	Text = "",
+	BackgroundColor3 = Colors.PanelLight,
+	Parent = poseBar,
+}, function()
+	selectedPose = selectedPose % #Config.Poses + 1
+	if player:GetAttribute("Posing") and not poseLocked(poseAt(selectedPose)) then
+		Remotes.SetPose:FireServer(poseAt(selectedPose).Id)
+	end
+end)
+
+local function refreshPoseBar()
+	local pose = poseAt(selectedPose)
+	poseButton.Text = (if poseLocked(pose) then "🔒 " else "") .. pose.Name .. " ▶"
+	local posing = player:GetAttribute("Posing") ~= nil
+	farmButton.Text = if posing then "STOP" elseif poseLocked(pose) then "🔒 VIP POSE" else "🕺 AURA FARM"
+	farmButton.BackgroundColor3 = if posing then Colors.Red else Color3.fromRGB(130, 70, 230)
+end
+player:GetAttributeChangedSignal("Posing"):Connect(refreshPoseBar)
 
 ------------------------------------------------------------------------
 -- Panelen
@@ -179,7 +305,7 @@ end
 -- Roll panel ----------------------------------------------------------
 
 local rollPanel, rollBody = makePanel("Roll", "🔮 Aura Roll")
-rollPanel.Size = UDim2.fromOffset(480, 460)
+rollPanel.Size = UDim2.fromOffset(500, 520)
 
 local resultBox = Ui.Create("Frame", {
 	Size = UDim2.new(1, 0, 0, 96),
@@ -199,10 +325,17 @@ local resultRarity = Ui.Label({
 	TextColor3 = Colors.SubText,
 	Parent = resultBox,
 })
+local rollInfo = Ui.Label({
+	Position = UDim2.fromOffset(0, 100),
+	Size = UDim2.new(1, 0, 0, 22),
+	Text = "",
+	TextColor3 = Colors.SubText,
+	Parent = rollBody,
+})
 
 local rollButton = Ui.Button({
-	Position = UDim2.fromOffset(0, 106),
-	Size = UDim2.new(0.5, -5, 0, 52),
+	Position = UDim2.fromOffset(0, 128),
+	Size = UDim2.new(0.5, -5, 0, 50),
 	Text = "Roll",
 	BackgroundColor3 = Colors.Accent,
 	Parent = rollBody,
@@ -213,8 +346,8 @@ local rollButton = Ui.Button({
 end)
 
 local freeRollButton = Ui.Button({
-	Position = UDim2.new(0.5, 5, 0, 106),
-	Size = UDim2.new(0.5, -5, 0, 52),
+	Position = UDim2.new(0.5, 5, 0, 128),
+	Size = UDim2.new(0.5, -5, 0, 50),
 	Text = "Free Roll",
 	BackgroundColor3 = Colors.Green,
 	Parent = rollBody,
@@ -224,7 +357,27 @@ local freeRollButton = Ui.Button({
 	end
 end)
 
-local auraList = makeList(rollBody, UDim2.fromOffset(0, 168), UDim2.new(1, 0, 1, -168))
+local autoRollButton = Ui.Button({
+	Position = UDim2.fromOffset(0, 184),
+	Size = UDim2.new(0.5, -5, 0, 40),
+	Text = "Auto Roll: OFF",
+	BackgroundColor3 = Colors.PanelLight,
+	Parent = rollBody,
+}, function()
+	if state then
+		Remotes.SetAutoRoll:FireServer(not state.AutoRoll)
+	end
+end)
+
+local oddsButton = Ui.Button({
+	Position = UDim2.new(0.5, 5, 0, 184),
+	Size = UDim2.new(0.5, -5, 0, 40),
+	Text = "📊 Odds",
+	BackgroundColor3 = Color3.fromRGB(60, 130, 220),
+	Parent = rollBody,
+})
+
+local auraList = makeList(rollBody, UDim2.fromOffset(0, 232), UDim2.new(1, 0, 1, -232))
 
 local function auraTextColor(aura)
 	return if aura.Name == "Void Aura" then Color3.fromRGB(190, 120, 255) else aura.Color
@@ -239,13 +392,21 @@ local function refreshAuraList()
 	if not state then
 		return
 	end
+	local shown = {}
+	for _, aura in Auras.Exclusive do
+		if state.OwnedAuras[aura.Name] then
+			table.insert(shown, aura)
+		end
+	end
 	for index = #Auras.List, 1, -1 do
-		local aura = Auras.List[index]
+		table.insert(shown, Auras.List[index])
+	end
+	for order, aura in shown do
 		local count = state.OwnedAuras[aura.Name]
 		local row = Ui.Create("Frame", {
 			Size = UDim2.new(1, 0, 0, 44),
 			BackgroundColor3 = Colors.Panel,
-			LayoutOrder = #Auras.List - index,
+			LayoutOrder = order,
 			Parent = auraList,
 		}, { Ui.Corner(10) })
 		Ui.Label({
@@ -325,13 +486,73 @@ local rebirthButton = Ui.Button({
 	Remotes.RequestRebirth:FireServer()
 end)
 
+-- Odds panel (kansen in procenten, verplicht volgens de Roblox regels) ---
+
+local _, oddsBody = makePanel("Odds", "📊 Aura Odds")
+local oddsInfo = Ui.Label({
+	Size = UDim2.new(1, 0, 0, 56),
+	Text = "",
+	TextColor3 = Colors.SubText,
+	Parent = oddsBody,
+})
+local oddsList = makeList(oddsBody, UDim2.fromOffset(0, 62), UDim2.new(1, 0, 1, -62))
+
+local function percentText(value: number): string
+	if value >= 1 then
+		return string.format("%.2f%%", value)
+	elseif value >= 0.01 then
+		return string.format("%.3f%%", value)
+	end
+	return string.format("%.4f%%", value)
+end
+
+local function refreshOdds()
+	for _, child in oddsList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local luck = if state then state.Luck else 1
+	oddsInfo.Text = "Chances with your luck (x" .. (math.floor(luck * 100) / 100) .. ") for every roll. Every " .. Config.PityRolls .. " rolls without a 1 in " .. Config.PityMinChance .. "+ aura, the next one is guaranteed.\nRounded, so they may not add up to exactly 100%."
+	local odds = Auras.Odds(luck)
+	for index = #Auras.List, 1, -1 do
+		local aura = Auras.List[index]
+		local row = Ui.Create("Frame", {
+			Size = UDim2.new(1, 0, 0, 34),
+			BackgroundColor3 = Colors.Panel,
+			LayoutOrder = #Auras.List - index,
+			Parent = oddsList,
+		}, { Ui.Corner(8) })
+		Ui.Label({
+			Position = UDim2.fromOffset(10, 4),
+			Size = UDim2.new(0.55, -10, 1, -8),
+			Text = aura.Name,
+			TextColor3 = auraTextColor(aura),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Parent = row,
+		})
+		Ui.Label({
+			Position = UDim2.new(0.55, 0, 0, 4),
+			Size = UDim2.new(0.45, -10, 1, -8),
+			Text = percentText(odds[aura.Name]),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			Parent = row,
+		})
+	end
+end
+
+oddsButton.Activated:Connect(function()
+	refreshOdds()
+	openPanel("Odds")
+end)
+
 -- Shop panel ----------------------------------------------------------
 
 local _, shopBody = makePanel("Shop", "🛒 Shop")
 local shopList = makeList(shopBody, UDim2.new(), UDim2.fromScale(1, 1))
-local passButtons = {}
+local shopKey = ""
 
-local function addShopRow(order: number, title: string, description: string, buttonText: string, onClick)
+local function addShopRow(order: number, title: string, description: string, buttonText: string, buttonColor: Color3, onClick)
 	local row = Ui.Create("Frame", {
 		Size = UDim2.new(1, 0, 0, 64),
 		BackgroundColor3 = Colors.Panel,
@@ -359,28 +580,59 @@ local function addShopRow(order: number, title: string, description: string, but
 		Position = UDim2.new(1, -8, 0.5, 0),
 		Size = UDim2.new(0.33, -8, 0, 44),
 		Text = buttonText,
-		BackgroundColor3 = Colors.Green,
+		BackgroundColor3 = buttonColor,
 		Parent = row,
 	}, onClick)
 end
 
-do
-	local order = 0
-	for key, pass in Config.GamePasses do
-		order += 1
-		passButtons[key] = addShopRow(order, pass.Name, pass.Description, if pass.Id == 0 then "Soon" else "Buy", function()
-			if pass.Id ~= 0 and not (state and state.Passes[key]) then
+local function inviteFriends()
+	local ok, canInvite = pcall(function()
+		return SocialService:CanSendGameInviteAsync(player)
+	end)
+	if ok and canInvite then
+		pcall(function()
+			SocialService:PromptGameInvite(player)
+		end)
+	end
+end
+
+local function refreshShop()
+	if not state then
+		return
+	end
+	local key = tostring(state.PaidRandomRestricted) .. tostring(state.StarterPackBought)
+	for passKey in Config.GamePasses do
+		key ..= tostring(state.Passes[passKey])
+	end
+	if key == shopKey then
+		return
+	end
+	shopKey = key
+	for _, child in shopList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+
+	addShopRow(0, "Invite Friends", "+10% Aura for each friend in your server", "Invite", Color3.fromRGB(200, 80, 140), inviteFriends)
+
+	for passKey, pass in Config.GamePasses do
+		local owned = state.Passes[passKey]
+		addShopRow(10 + pass.Order, pass.Name, pass.Description, if owned then "Owned" elseif pass.Id == 0 then "Soon" else "Buy", if owned then Colors.PanelLight else Colors.Green, function()
+			if pass.Id ~= 0 and not owned then
 				MarketplaceService:PromptGamePassPurchase(player, pass.Id)
 			end
 		end)
 	end
 	for _, product in Config.DevProducts do
-		order += 1
-		addShopRow(order, product.Name, product.Minutes .. " minutes of your Aura income", if product.Id == 0 then "Soon" else "Buy", function()
-			if product.Id ~= 0 then
-				MarketplaceService:PromptProductPurchase(player, product.Id)
-			end
-		end)
+		local hidden = (product.Kind == "Aura" and state.PaidRandomRestricted) or (product.Kind == "Starter" and state.StarterPackBought)
+		if not hidden then
+			addShopRow(20 + product.Order, product.Name, product.Description, if product.Id == 0 then "Soon" else "Buy", Colors.Green, function()
+				if product.Id ~= 0 then
+					MarketplaceService:PromptProductPurchase(player, product.Id)
+				end
+			end)
+		end
 	end
 end
 
@@ -445,6 +697,137 @@ Ui.Button({
 	end
 end)
 
+-- Quests panel --------------------------------------------------------
+
+local _, questBody = makePanel("Quests", "📜 Daily Quests")
+local questInfo = Ui.Label({
+	Size = UDim2.new(1, 0, 0, 30),
+	Text = "",
+	TextColor3 = Colors.SubText,
+	Parent = questBody,
+})
+local questList = makeList(questBody, UDim2.fromOffset(0, 36), UDim2.new(1, 0, 1, -36))
+local questKey = ""
+
+local function refreshQuests()
+	local quest = state and state.Quest
+	if not quest then
+		return
+	end
+	local key = ""
+	for _, q in quest.Quests do
+		key ..= q.Progress .. "/" .. tostring(q.Claimed) .. ";"
+	end
+	if key == questKey then
+		return
+	end
+	questKey = key
+	for _, child in questList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local readyCount = 0
+	for index, q in quest.Quests do
+		local done = q.Progress >= q.Goal
+		if done and not q.Claimed then
+			readyCount += 1
+		end
+		local row = Ui.Create("Frame", {
+			Size = UDim2.new(1, 0, 0, 82),
+			BackgroundColor3 = Colors.Panel,
+			LayoutOrder = index,
+			Parent = questList,
+		}, { Ui.Corner(10) })
+		Ui.Label({
+			Position = UDim2.fromOffset(10, 6),
+			Size = UDim2.new(0.66, -10, 0, 28),
+			Text = q.Text,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Parent = row,
+		})
+		Ui.Label({
+			Position = UDim2.fromOffset(10, 34),
+			Size = UDim2.new(0.66, -10, 0, 20),
+			Text = "Reward: " .. q.Reward,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Colors.Gold,
+			Parent = row,
+		})
+		local bar = Ui.Create("Frame", {
+			Position = UDim2.fromOffset(10, 58),
+			Size = UDim2.new(0.66, -10, 0, 16),
+			BackgroundColor3 = Colors.PanelLight,
+			Parent = row,
+		}, { Ui.Corner(6) })
+		Ui.Create("Frame", {
+			Size = UDim2.fromScale(math.clamp(q.Progress / q.Goal, 0, 1), 1),
+			BackgroundColor3 = Colors.Green,
+			Parent = bar,
+		}, { Ui.Corner(6) })
+		Ui.Label({
+			Size = UDim2.fromScale(1, 1),
+			Text = Format.Number(q.Progress) .. " / " .. Format.Number(q.Goal),
+			ZIndex = 2,
+			Parent = bar,
+		})
+		Ui.Button({
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -8, 0.5, 0),
+			Size = UDim2.new(0.32, -8, 0, 48),
+			Text = if q.Claimed then "Done ✓" elseif done then "Claim!" else "...",
+			BackgroundColor3 = if done and not q.Claimed then Colors.Green else Colors.PanelLight,
+			Parent = row,
+		}, function()
+			if done and not q.Claimed then
+				Remotes.ClaimQuest:FireServer(index)
+			end
+		end)
+	end
+	badges.Quests.Visible = readyCount > 0
+	badges.Quests.Text = tostring(readyCount)
+end
+
+-- Gifts panel ---------------------------------------------------------
+
+local _, giftBody = makePanel("Gifts", "🎉 Playtime Gifts")
+Ui.Label({
+	Size = UDim2.new(1, 0, 0, 30),
+	Text = "Keep playing to unlock gifts!",
+	TextColor3 = Colors.SubText,
+	Parent = giftBody,
+})
+local giftList = makeList(giftBody, UDim2.fromOffset(0, 36), UDim2.new(1, 0, 1, -36))
+local giftButtons = {}
+
+for index in Config.PlaytimeGifts do
+	local row = Ui.Create("Frame", {
+		Size = UDim2.new(1, 0, 0, 52),
+		BackgroundColor3 = Colors.Panel,
+		LayoutOrder = index,
+		Parent = giftList,
+	}, { Ui.Corner(10) })
+	local rewardLabel = Ui.Label({
+		Position = UDim2.fromOffset(10, 8),
+		Size = UDim2.new(0.62, -10, 1, -16),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Colors.Gold,
+		Parent = row,
+	})
+	local button = Ui.Button({
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.new(0.36, -8, 0, 40),
+		Text = "",
+		BackgroundColor3 = Colors.PanelLight,
+		Parent = row,
+	}, function()
+		Remotes.ClaimGift:FireServer(index)
+	end)
+	giftButtons[index] = { Button = button, Reward = rewardLabel }
+end
+
 ------------------------------------------------------------------------
 -- Menu links
 ------------------------------------------------------------------------
@@ -452,13 +835,17 @@ end)
 local menu = Ui.Create("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 12, 0.5, 0),
-	Size = UDim2.fromOffset(84, 5 * 84),
+	Size = UDim2.fromOffset(2 * 76 + 8, 4 * 84),
 	BackgroundTransparency = 1,
 	Parent = screen,
 })
-Ui.Create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = menu })
+Ui.Create("UIGridLayout", {
+	CellSize = UDim2.fromOffset(76, 76),
+	CellPadding = UDim2.fromOffset(8, 8),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = menu,
+})
 
-local badges = {}
 local function menuButton(order: number, name: string, emoji: string, text: string, color: Color3)
 	local button = Ui.Button({
 		Size = UDim2.fromOffset(76, 76),
@@ -490,7 +877,9 @@ menuButton(1, "Roll", "🔮", "Roll", Color3.fromRGB(130, 70, 230))
 menuButton(2, "Rebirth", "♻️", "Rebirth", Color3.fromRGB(220, 160, 40))
 menuButton(3, "Shop", "🛒", "Shop", Color3.fromRGB(50, 170, 90))
 menuButton(4, "Daily", "🎁", "Daily", Color3.fromRGB(220, 70, 120))
-menuButton(5, "Codes", "🎟️", "Codes", Color3.fromRGB(60, 130, 220))
+menuButton(5, "Quests", "📜", "Quests", Color3.fromRGB(90, 160, 200))
+menuButton(6, "Gifts", "🎉", "Gifts", Color3.fromRGB(240, 120, 60))
+menuButton(7, "Codes", "🎟️", "Codes", Color3.fromRGB(60, 130, 220))
 
 ------------------------------------------------------------------------
 -- Meldingen
@@ -498,8 +887,8 @@ menuButton(5, "Codes", "🎟️", "Codes", Color3.fromRGB(60, 130, 220))
 
 local toastHolder = Ui.Create("Frame", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -110),
-	Size = UDim2.fromOffset(520, 300),
+	Position = UDim2.new(0.5, 0, 1, -124),
+	Size = UDim2.fromOffset(520, 260),
 	BackgroundTransparency = 1,
 	Parent = screen,
 })
@@ -647,18 +1036,29 @@ local function refreshStatic(listChanged: boolean)
 	rebirthButton.Text = if progress >= 1 then "REBIRTH NOW!" else "Need " .. Format.Number(state.RebirthCost) .. " Aura"
 	badges.Rebirth.Visible = progress >= 1
 
-	for key, button in passButtons do
-		if state.Passes[key] then
-			button.Text = "Owned"
-			button.BackgroundColor3 = Colors.PanelLight
+	local discovered = 0
+	for _, aura in Auras.List do
+		if state.OwnedAuras[aura.Name] then
+			discovered += 1
 		end
 	end
+	rollInfo.Text = "Luck x" .. (math.floor(state.Luck * 100) / 100)
+		.. "  •  Rare aura guaranteed in " .. state.PityLeft .. " rolls"
+		.. "  •  Index " .. discovered .. "/" .. #Auras.List
+	autoRollButton.Text = if not state.AutoRollUnlocked then "🔒 Auto Roll (Rebirth 1)" elseif state.AutoRoll then "Auto Roll: ON" else "Auto Roll: OFF"
+	autoRollButton.BackgroundColor3 = if state.AutoRoll then Colors.Green else Colors.PanelLight
 
 	dailyStreakLabel.Text = "Streak: day " .. state.DailyStreak
 
 	if listChanged then
 		refreshAuraList()
 	end
+	if openPanelName == "Odds" then
+		refreshOdds()
+	end
+	refreshShop()
+	refreshQuests()
+	refreshPoseBar()
 end
 
 local function refreshTimers()
@@ -677,6 +1077,68 @@ local function refreshTimers()
 	dailyButton.Text = if dailyIn <= 0 then "Claim!" else "Next in " .. Format.Time(dailyIn)
 	dailyButton.BackgroundColor3 = if dailyIn <= 0 then Colors.Green else Colors.PanelLight
 	badges.Daily.Visible = dailyIn <= 0
+
+	-- Boosts
+	local peak = math.max(0, state.Boosts.Peak - elapsed)
+	local double = math.max(0, state.Boosts.Double - elapsed)
+	local luck = math.max(0, state.Boosts.Luck - elapsed)
+	chips.Peak.Visible = peak > 0
+	chips.Peak.Text = "PEAK AURA " .. Format.Time(peak)
+	chips.Double.Visible = double > 0
+	chips.Double.Text = "2x Aura " .. Format.Time(double)
+	chips.Luck.Visible = luck > 0
+	chips.Luck.Text = "2x Luck " .. Format.Time(luck)
+	chips.Friends.Visible = state.FriendsInServer > 0
+	chips.Friends.Text = "Friends +" .. math.min(state.FriendsInServer, Config.MaxFriendBonus) * 10 .. "%"
+
+	-- Gifts
+	local readyGifts = 0
+	if state.Quest then
+		for index, gift in state.Quest.Gifts do
+			local entry = giftButtons[index]
+			if entry then
+				local readyIn = math.max(0, gift.ReadyIn - elapsed)
+				entry.Reward.Text = gift.Reward
+				if gift.Claimed then
+					entry.Button.Text = "Claimed ✓"
+					entry.Button.BackgroundColor3 = Colors.PanelLight
+				elseif readyIn <= 0 then
+					readyGifts += 1
+					entry.Button.Text = "Claim!"
+					entry.Button.BackgroundColor3 = Colors.Green
+				else
+					entry.Button.Text = Format.Time(readyIn)
+					entry.Button.BackgroundColor3 = Colors.PanelLight
+				end
+			end
+		end
+		questInfo.Text = "All 3 done = " .. state.Quest.AllDoneReward .. "  •  New quests in " .. Format.Time(state.Quest.ResetIn - elapsed)
+	end
+	badges.Gifts.Visible = readyGifts > 0
+	badges.Gifts.Text = tostring(readyGifts)
+
+	-- Aura Meter
+	local peakActive = peak > 0
+	local meter = player:GetAttribute("AuraMeter") or 0
+	meterFill.Size = UDim2.fromScale(if peakActive then 1 else math.clamp(meter / 100, 0, 1), 1)
+	meterFill.BackgroundColor3 = if peakActive then Color3.fromRGB(255, 120, 220) else Colors.Gold
+	meterLabel.Text = if peakActive then "PEAK AURA! 2x Aura " .. Format.Time(peak) elseif player:GetAttribute("Posing") then "AURA FARMING... " .. math.floor(meter) .. "%" else "AURA METER " .. math.floor(meter) .. "%  (stand still + pose)"
+
+	-- Event banner
+	local now = workspace:GetServerTimeNow()
+	local eventId = workspace:GetAttribute("EventId")
+	local event = if type(eventId) == "string" then Config.Events[eventId] else nil
+	if event then
+		local ends = workspace:GetAttribute("EventEnds") or now
+		eventBanner.Text = "⚡ " .. event.Name .. " " .. Format.Time(ends - now) .. "  •  " .. event.Description
+		eventBanner.TextColor3 = Colors.Gold
+		eventBanner.BackgroundColor3 = Color3.fromRGB(110, 50, 190)
+	else
+		local nextAt = workspace:GetAttribute("NextEventAt")
+		eventBanner.Text = if type(nextAt) == "number" then "Next event in " .. Format.Time(nextAt - now) else ""
+		eventBanner.TextColor3 = Colors.SubText
+		eventBanner.BackgroundColor3 = Colors.Panel
+	end
 end
 
 local lastOwnedKey = ""

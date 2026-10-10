@@ -8,11 +8,16 @@ local Format = require(ReplicatedStorage.Shared.Format)
 
 local Services = script.Parent.Services
 local AuraService = require(Services.AuraService)
+local BoostService = require(Services.BoostService)
 local DataService = require(Services.DataService)
 local Economy = require(Services.Economy)
+local EventService = require(Services.EventService)
+local FriendService = require(Services.FriendService)
 local LeaderboardService = require(Services.LeaderboardService)
 local MapBuilder = require(Services.MapBuilder)
 local MonetizationService = require(Services.MonetizationService)
+local PoseService = require(Services.PoseService)
+local QuestService = require(Services.QuestService)
 local RewardService = require(Services.RewardService)
 local TycoonService = require(Services.TycoonService)
 
@@ -24,6 +29,10 @@ TycoonService.Init()
 AuraService.Init()
 MonetizationService.Init()
 RewardService.Init()
+QuestService.Init()
+PoseService.Init()
+FriendService.Init()
+EventService.Init()
 LeaderboardService.Init(map)
 
 ------------------------------------------------------------------------
@@ -51,13 +60,27 @@ local function buildState(player: Player)
 		NextRebirthMultiplier = Config.RebirthMultiplier(data.Rebirths + 1),
 		IncomePerSecond = Economy.IncomePerSecond(player),
 		RollCost = Config.RollCost(data.Rebirths),
-		FreeRollIn = math.max(0, data.LastFreeRoll + Config.FreeRollCooldown - os.time()),
+		FreeRollIn = AuraService.FreeRollWait(data),
 		DailyIn = RewardService.DailyWait(data),
 		DailyStreak = data.DailyStreak,
 		OwnedAuras = data.OwnedAuras,
 		EquippedAura = data.EquippedAura,
 		Passes = passes,
 		CanSave = DataService.CanSave(player),
+		Luck = Economy.GetLuck(player),
+		IndexLuck = Economy.IndexLuck(data),
+		PityLeft = math.max(0, Config.PityRolls - data.PityCounter),
+		Boosts = {
+			Double = BoostService.Remaining(player, "Double"),
+			Luck = BoostService.Remaining(player, "Luck"),
+			Peak = BoostService.PeakRemaining(player),
+		},
+		FriendsInServer = player:GetAttribute("FriendsInServer") or 0,
+		AutoRollUnlocked = data.Rebirths >= Config.AutoRollRebirths,
+		AutoRoll = player:GetAttribute("AutoRoll") == true,
+		StarterPackBought = data.StarterPackBought,
+		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") ~= false,
+		Quest = QuestService.State(player),
 	}
 end
 
@@ -117,6 +140,7 @@ local function onCharacterAdded(player: Player, character: Model)
 		return
 	end
 	task.wait(0.1)
+	PoseService.Stop(player)
 	local spawnCFrame = TycoonService.SpawnCFrame(player)
 	if spawnCFrame then
 		character:PivotTo(spawnCFrame)
@@ -137,6 +161,7 @@ local function onPlayerAdded(player: Player)
 	stats.Parent = player
 
 	MonetizationService.LoadPasses(player)
+	MonetizationService.LoadPolicy(player)
 
 	local profile = DataService.Load(player)
 	if not profile or not player.Parent then
@@ -156,6 +181,8 @@ local function onPlayerAdded(player: Player)
 	end
 
 	RewardService.GiveOfflineEarnings(player)
+	QuestService.OnJoin(player)
+	FriendService.OnJoin(player)
 	DataService.Changed(player)
 
 	if not profile.CanSave then
@@ -164,6 +191,7 @@ local function onPlayerAdded(player: Player)
 end
 
 local function onPlayerRemoving(player: Player)
+	PoseService.Stop(player)
 	TycoonService.Collect(player, true)
 	TycoonService.Release(player)
 	DataService.Release(player)
@@ -174,10 +202,10 @@ Remotes.RequestRebirth.OnServerEvent:Connect(function(player)
 	TycoonService.Rebirth(player)
 end)
 
--- Tijden (gratis roll, daily) elke paar seconden opnieuw sturen
+-- Tijden (gratis roll, daily, boosts) elke paar seconden opnieuw sturen
 task.spawn(function()
 	while true do
-		task.wait(5)
+		task.wait(3)
 		for _, player in Players:GetPlayers() do
 			dirty[player] = true
 		end

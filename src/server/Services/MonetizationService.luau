@@ -2,10 +2,13 @@
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local AuraService = require(script.Parent.AuraService)
+local BoostService = require(script.Parent.BoostService)
 local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
 
@@ -31,6 +34,19 @@ local function productForId(productId: number)
 		end
 	end
 	return nil
+end
+
+-- Landen zoals Nederland en België hebben regels voor loot boxes. Omdat je met Aura kunt rollen,
+-- verbergen we daar de Aura packs (Robux -> Aura). Als de check mislukt, gaan we uit van "wel regels".
+function MonetizationService.LoadPolicy(player: Player)
+	local ok, info = pcall(function()
+		return PolicyService:GetPolicyInfoForPlayerAsync(player)
+	end)
+	local restricted = true
+	if ok and info then
+		restricted = info.ArePaidRandomItemsRestricted == true
+	end
+	player:SetAttribute("PaidRandomRestricted", restricted)
 end
 
 function MonetizationService.LoadPasses(player: Player)
@@ -63,8 +79,20 @@ local function processReceipt(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	local amount = math.max(product.Minimum, math.floor(Economy.IncomePerSecond(player) * product.Minutes * 60))
-	DataService.AddAura(player, amount)
+	local message
+	if product.Kind == "Starter" then
+		data.StarterPackBought = true
+		BoostService.Add(player, "Double", product.BoostMinutes)
+		AuraService.GiveExclusive(player, "Starter Spark")
+		message = "Starter Pack unlocked! " .. product.BoostMinutes .. " min 2x Aura + Starter Spark aura"
+	elseif product.Kind == "Boost" then
+		BoostService.Add(player, "Double", product.BoostMinutes)
+		message = "2x Aura for " .. product.BoostMinutes .. " more minutes!"
+	else
+		local amount = math.max(product.Minimum, math.floor(Economy.BaseIncomePerSecond(player) * product.Minutes * 60))
+		DataService.AddAura(player, amount)
+		message = "Thanks! +" .. Format.Number(amount) .. " Aura"
+	end
 
 	table.insert(data.ProcessedReceipts, receipt.PurchaseId)
 	while #data.ProcessedReceipts > MAX_RECEIPTS do
@@ -72,7 +100,7 @@ local function processReceipt(receipt)
 	end
 	DataService.Save(player)
 
-	Remotes.Notify:FireClient(player, "Thanks! +" .. Format.Number(amount) .. " Aura", "rare")
+	Remotes.Notify:FireClient(player, message, "rare")
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
