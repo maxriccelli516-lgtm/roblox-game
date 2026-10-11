@@ -50,7 +50,7 @@ Opslaan werkt pas als je de game één keer hebt gepubliceerd (**File → Publis
 | Opslaan | Je voortgang wordt elke minuut en bij weggaan opgeslagen |
 | Offline inkomen | Je krijgt 25% van je inkomen terwijl je weg bent (max 4 uur) |
 | Dagelijkse beloning | Elke dag claimen, met een streak tot dag 7 |
-| Codes | `AURAFARM`, `67`, `SIGMA` |
+| Codes | `AURAFARM`, `67`, `SIGMA`, `LAUNCH`, `ARENA` |
 | Leaderboards | 3 borden op het plein: top 10 Aura farmers, hoogste Aura Level en meeste battle wins van alle servers. In de spelerslijst zie je Aura, Level, Rebirths en Wins |
 | Shop | 4 gamepasses en 4 producten (Robux) |
 | Mobiel | Grote knoppen en de UI schaalt mee met het scherm |

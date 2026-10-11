@@ -51,6 +51,8 @@ Config.Codes = {
 	AURAFARM = 500,
 	["67"] = 670,
 	SIGMA = 1000,
+	LAUNCH = 2500,
+	ARENA = 1500,
 }
 
 -- ROBUX AANKOPEN
