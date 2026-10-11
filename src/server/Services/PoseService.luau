@@ -20,54 +20,8 @@ local UPDATE_RATE = 1 / 15
 local POPUP_EVERY = 3
 local POPUP_TEXTS = { "+1000 AURA", "+1000 AURA", "AURA FARMING", "+500 AURA", "PEAK AURA SOON", "+9999 AURA" }
 
-local rad = math.rad
-local sin = math.sin
-
--- Elke pose geeft per gewricht (R15) een draaiing terug, afhankelijk van de tijd t
-local POSES = {
-	BoatKid = function(t: number)
-		local beat = t * 5
-		return {
-			RightShoulder = CFrame.Angles(rad(55 + 40 * sin(beat)), 0, rad(10)),
-			LeftShoulder = CFrame.Angles(rad(55 + 40 * sin(beat + math.pi)), 0, rad(-10)),
-			Waist = CFrame.Angles(0, rad(14 * sin(beat / 2)), 0),
-			Neck = CFrame.Angles(rad(6 * sin(beat)), rad(-10 * sin(beat / 2)), 0),
-		}
-	end,
-	SkyPoint = function(t: number)
-		return {
-			RightShoulder = CFrame.Angles(rad(165), 0, rad(-8)),
-			LeftShoulder = CFrame.Angles(0, 0, rad(-12)),
-			Neck = CFrame.Angles(rad(18 + 2 * sin(t * 2)), 0, 0),
-			Waist = CFrame.Angles(rad(-6), 0, 0),
-		}
-	end,
-	Sigma = function(t: number)
-		return {
-			RightShoulder = CFrame.Angles(0, rad(55), 0) * CFrame.Angles(rad(85), 0, 0),
-			LeftShoulder = CFrame.Angles(0, rad(-55), 0) * CFrame.Angles(rad(80), 0, 0),
-			Neck = CFrame.Angles(rad(10), rad(4 * sin(t)), 0),
-			Waist = CFrame.Angles(rad(-4), 0, 0),
-		}
-	end,
-	Hero = function(t: number)
-		return {
-			RightShoulder = CFrame.Angles(rad(-15), 0, rad(35)),
-			LeftShoulder = CFrame.Angles(rad(-15), 0, rad(-35)),
-			Neck = CFrame.Angles(rad(8), rad(25 * sin(t * 0.8)), 0),
-			Waist = CFrame.Angles(rad(-8), 0, 0),
-		}
-	end,
-}
-
-local JOINT_PARENTS = {
-	RightShoulder = "RightUpperArm",
-	LeftShoulder = "LeftUpperArm",
-	Neck = "Head",
-	Waist = "UpperTorso",
-}
-
--- [Player] = { PoseId, Joints = { [name] = { Motor, Original } }, Started, Meter, Seconds, NextPopup }
+-- [Player] = { PoseId, Started, Seconds, NextPopup }
+-- De pose zelf (armen, hoofd) wordt door elke client getekend in Poses.client.luau, op basis van het attribuut "Posing".
 local posing = {}
 
 local function poseConfig(poseId: string)
@@ -77,18 +31,6 @@ local function poseConfig(poseId: string)
 		end
 	end
 	return nil
-end
-
-local function findJoints(character: Model)
-	local joints = {}
-	for name, partName in JOINT_PARENTS do
-		local part = character:FindFirstChild(partName)
-		local motor = part and part:FindFirstChild(name)
-		if motor and motor:IsA("Motor6D") then
-			joints[name] = { Motor = motor, Original = motor.C0 }
-		end
-	end
-	return joints
 end
 
 local function popup(player: Player, text: string, color: Color3)
@@ -149,11 +91,6 @@ function PoseService.Stop(player: Player)
 		return
 	end
 	posing[player] = nil
-	for _, joint in state.Joints do
-		if joint.Motor.Parent then
-			joint.Motor.C0 = joint.Original
-		end
-	end
 	player:SetAttribute("Posing", nil)
 end
 
@@ -174,7 +111,6 @@ function PoseService.Start(player: Player, poseId: string)
 	PoseService.Stop(player)
 	posing[player] = {
 		PoseId = poseId,
-		Joints = findJoints(character),
 		Started = os.clock(),
 		Seconds = 0,
 		NextPopup = POPUP_EVERY,
@@ -198,15 +134,6 @@ local function update(dt: number)
 		if not player.Parent or (os.clock() - state.Started > 0.6 and isMoving(player)) then
 			PoseService.Stop(player)
 			continue
-		end
-
-		local t = os.clock() - state.Started
-		local offsets = POSES[state.PoseId](t)
-		for name, joint in state.Joints do
-			local offset = offsets[name]
-			if offset and joint.Motor.Parent then
-				joint.Motor.C0 = joint.Original * offset
-			end
 		end
 
 		-- Aura Meter vullen (VIP gaat 50% sneller). Tijdens PEAK AURA staat de meter stil.

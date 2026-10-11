@@ -2,9 +2,17 @@
 
 Een Roblox tycoon waarin je **aura farmt**. Je bouwt Aura Generators die gloeiende orbs maken, die over een lopende band naar je Aura Collector gaan. Met je Aura koop je nieuwe generators en boosters, en bij het Aura Altaar in het midden kun je zeldzame aura's rollen (van "Basic Glow" tot "Void Aura, 1 in 10000").
 
+## De nieuwste versie downloaden (zonder git)
+
+1. Ga naar de pagina van deze repository op GitHub.
+2. Kies bovenin de goede **branch** (na het mergen van een pull request is dat gewoon `main`).
+3. Klik op de groene knop **Code** en dan op **Download ZIP**.
+4. Pak de ZIP uit (rechtermuisknop → **Alles uitpakken**). Gooi je oude map weg of zet hem ergens anders, zodat je niet per ongeluk de oude versie opent.
+5. Doe daarna de stappen hieronder met de nieuwe map.
+
 ## In Roblox Studio zetten met Rojo
 
-1. Open deze map in **VS Code**.
+1. Open de uitgepakte map in **VS Code**.
 2. Druk op `Ctrl + Shift + P`, typ **Rojo: Open menu** en kies **default.project.json**. Klik op **Start server**.
 3. Open **Roblox Studio** en maak een nieuwe **Baseplate** place.
 4. Ga naar het tabblad **Plugins**, klik op **Rojo** en dan op **Connect**. Zie je geen Rojo knop? Kies dan in het Rojo menu van VS Code eerst **Install Roblox Studio plugin**.
@@ -20,10 +28,12 @@ Opslaan werkt pas als je de game één keer hebt gepubliceerd (**File → Publis
 
 | Onderdeel | Wat het doet |
 |---|---|
-| 6 plots | Elke speler krijgt automatisch een eigen plot met naambord |
-| 18 dingen om te kopen | 9 generators, 4 boosters, een 2e lopende band, muren, lampen, toren en een troon waar je op kunt zitten |
+| Wereld | Zonnige dag, gras dat wappert, vijvers met water, heuvels, een bos, paden met lantaarns en een plein met het Aura Altaar |
+| 6 plots | Elke speler krijgt een eigen plot met poort, naambord, Aura HQ gebouwtje, bomen, bloembakken en een fontein |
+| Animaties | Machines met draaiende edelstenen, bewegende lopende banden, knipperende knoppen, nieuwe dingen vallen met een plopje in beeld, "+12" bij de collector en "+5K Aura" bij het ophalen |
+| 18 dingen om te kopen | 9 generators, 4 boosters, een 2e lopende band, een hek, lantaarns, toren en een troon in je Aura HQ waar je op kunt zitten |
 | Rebirth | Alles opnieuw, maar je verdient elke rebirth +50% meer |
-| **Aura farmen** | Druk op 🕺 AURA FARM en sta stil in een pose (Boat Kid, Sky Point, en 2 VIP poses). Je Aura Meter loopt vol en dan krijg je **PEAK AURA**: 45 sec 2x Aura. Boven je hoofd verschijnt "+1000 AURA" |
+| **Aura farmen** | Druk op 🕺 AURA FARM en sta stil in een pose (Boat Kid, Sky Point, en 2 VIP poses). Je armen en hoofd bewegen echt en er draait een aura-ring onder je voeten. Je Aura Meter loopt vol en dan krijg je **PEAK AURA**: 45 sec 2x Aura. Boven je hoofd verschijnt "+1000 AURA" |
 | Aura rollen | 12 aura's van 1 in 1 tot 1 in 10000, gratis roll elke 45 sec, Auto Roll na de eerste rebirth |
 | Pity | Na 75 rolls zonder zeldzame aura krijg je er gegarandeerd een |
 | Aura Index | Hoe meer aura's je vindt, hoe meer blijvende Luck (tot +70%) |
@@ -69,5 +79,5 @@ Alle getallen staan in `src/shared/Config.luau` (prijzen, hoe snel, rebirth kost
 ```
 src/shared   Config, aura's en getallen-opmaak (server en speler)
 src/server   Main script en Services (data, tycoon, aura's, shop, beloningen, map, leaderboard)
-src/client   Het scherm van de speler (UI)
+src/client   Het scherm van de speler (UI), de poses en alle animaties
 ```

@@ -148,7 +148,7 @@ end
 Config.Items = {
 	{ Id = "Dropper1", Name = "Aura Spark", Type = "Dropper", Price = 0, Line = 1, X = -32, Value = 2, Interval = 1.5, Color = Color3.fromRGB(235, 235, 255) },
 	{ Id = "Dropper2", Name = "Chill Generator", Type = "Dropper", Price = 40, Line = 1, X = -24, Value = 4, Interval = 1.5, Color = Color3.fromRGB(120, 200, 255) },
-	{ Id = "Walls", Name = "Glow Walls", Type = "Decor", Price = 120 },
+	{ Id = "Walls", Name = "Aura Fence", Type = "Decor", Price = 120 },
 	{ Id = "Dropper3", Name = "Vibe Generator", Type = "Dropper", Price = 250, Line = 1, X = -16, Value = 8, Interval = 1.5, Color = Color3.fromRGB(110, 255, 160) },
 	{ Id = "Upgrader1", Name = "Aura Booster", Type = "Upgrader", Price = 600, Line = 1, X = 10, Multiplier = 1.5, Color = Color3.fromRGB(255, 220, 90) },
 	{ Id = "Dropper4", Name = "Rizz Generator", Type = "Dropper", Price = 1200, Line = 1, X = -8, Value = 18, Interval = 1.5, Color = Color3.fromRGB(255, 120, 220) },
