@@ -1,5 +1,6 @@
 -- Bouwt de plots, generators, lopende banden, knoppen en regelt kopen, ophalen en rebirth.
 
+local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
@@ -8,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Builder)
+local Decor = require(script.Parent.Decor)
 local Bus = require(script.Parent.Bus)
 local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
@@ -19,12 +21,12 @@ local TycoonService = {}
 local AFFORD_COLOR = Color3.fromRGB(60, 255, 120)
 local TOO_EXPENSIVE_COLOR = Color3.fromRGB(255, 80, 80)
 local PLOT_COLORS = {
-	Color3.fromRGB(70, 50, 110),
-	Color3.fromRGB(40, 70, 110),
-	Color3.fromRGB(40, 95, 80),
-	Color3.fromRGB(110, 60, 80),
-	Color3.fromRGB(100, 85, 40),
-	Color3.fromRGB(60, 60, 75),
+	Color3.fromRGB(160, 100, 255),
+	Color3.fromRGB(70, 160, 255),
+	Color3.fromRGB(50, 200, 150),
+	Color3.fromRGB(255, 100, 160),
+	Color3.fromRGB(255, 160, 50),
+	Color3.fromRGB(110, 210, 70),
 }
 
 local plots = {}
@@ -102,58 +104,101 @@ end
 -- Onderdelen bouwen
 ------------------------------------------------------------------------
 
+local METAL = Color3.fromRGB(70, 72, 82)
+local DARK_METAL = Color3.fromRGB(40, 42, 50)
+local WHITE = Color3.fromRGB(240, 240, 245)
+
 local function buildLine(plot, lineIndex: number, folder: Instance)
 	local z = Config.Lines[lineIndex].Z
 	local conveyor = Builder.Part({
 		Name = "Conveyor",
 		Size = Vector3.new(66, 1, 6),
 		CFrame = at(plot, -3, 1.5, z),
-		Material = Enum.Material.DiamondPlate,
-		Color = Color3.fromRGB(45, 45, 55),
+		Material = Enum.Material.Rubber,
+		Color = Color3.fromRGB(35, 35, 40),
 		Parent = folder,
 	})
 	conveyor.AssemblyLinearVelocity = plot.CFrame.RightVector * Config.ConveyorSpeed
-
-	Builder.Part({
-		Name = "Stripe",
-		Size = Vector3.new(66, 0.05, 0.6),
-		CFrame = at(plot, -3, 2.03, z),
-		Material = Enum.Material.Neon,
-		Color = Color3.fromRGB(170, 110, 255),
-		CanCollide = false,
-		CanQuery = false,
-		CanTouch = false,
-		Parent = folder,
-	})
+	-- De client tekent bewegende streepjes op de band
+	CollectionService:AddTag(conveyor, "Conveyor")
 
 	for _, side in { -1, 1 } do
 		Builder.Part({
 			Name = "Rail",
 			Size = Vector3.new(66, 1.6, 0.6),
 			CFrame = at(plot, -3, 2.8, z + side * 3.3),
-			Color = Color3.fromRGB(25, 25, 30),
+			Material = Enum.Material.Metal,
+			Color = METAL,
 			Parent = folder,
 		})
+		Builder.Part({
+			Name = "RailStripe",
+			Size = Vector3.new(66, 0.3, 0.65),
+			CFrame = at(plot, -3, 3.3, z + side * 3.3),
+			Material = Enum.Material.SmoothPlastic,
+			Color = Color3.fromRGB(255, 200, 40),
+			CanCollide = false,
+			Parent = folder,
+		})
+		for x = -33, 27, 10 do
+			Builder.Part({ Name = "Leg", Size = Vector3.new(0.8, 1, 0.8), CFrame = at(plot, x, 0.9, z + side * 2.6), Material = Enum.Material.Metal, Color = DARK_METAL, Parent = folder })
+		end
 	end
 	Builder.Part({
 		Name = "BackStop",
 		Size = Vector3.new(0.6, 1.6, 6),
 		CFrame = at(plot, -36.3, 2.8, z),
-		Color = Color3.fromRGB(25, 25, 30),
+		Material = Enum.Material.Metal,
+		Color = METAL,
 		Parent = folder,
 	})
 
+	-- Aura Collector: een glazen tank met een gloeiende kern
+	Builder.Part({ Name = "CollectorBase", Size = Vector3.new(8, 1, 10), CFrame = at(plot, 33, 1, z), Material = Enum.Material.DiamondPlate, Color = METAL, Parent = folder })
 	local collector = Builder.Part({
 		Name = "Collector",
 		Size = Vector3.new(6, 5, 8),
 		CFrame = at(plot, 33, 3.5, z),
-		Material = Enum.Material.Neon,
-		Color = Color3.fromRGB(150, 70, 255),
-		Transparency = 0.15,
+		Material = Enum.Material.Glass,
+		Color = Color3.fromRGB(190, 150, 255),
+		Transparency = 0.45,
 		Parent = folder,
 	})
-	Builder.Sparkles(collector, Color3.fromRGB(200, 150, 255), 12)
-	Builder.Billboard(collector, "AURA COLLECTOR", UDim2.new(8, 0, 1.5, 0), Vector3.new(0, 4, 0))
+	Builder.Part({ Name = "CollectorCap", Size = Vector3.new(7, 1, 9), CFrame = at(plot, 33, 6.5, z), Material = Enum.Material.Metal, Color = METAL, Parent = folder })
+	Builder.Part({
+		Name = "CollectorPipe",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(4, 1.6, 1.6),
+		CFrame = at(plot, 33, 9, z) * CFrame.Angles(0, 0, math.rad(90)),
+		Material = Enum.Material.Metal,
+		Color = METAL,
+		Parent = folder,
+	})
+	local core = Builder.Part({
+		Name = "CollectorCore",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 3,
+		CFrame = at(plot, 33, 3.6, z),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(170, 90, 255),
+		CanCollide = false,
+		CanTouch = false,
+		CanQuery = false,
+		Parent = folder,
+	})
+	Decor.Animate(core, nil, 0.4, 0.35)
+	local top = Builder.Part({
+		Name = "CollectorGem",
+		Size = Vector3.one * 1.6,
+		CFrame = at(plot, 33, 12, z) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(200, 150, 255),
+		CanCollide = false,
+		Parent = folder,
+	})
+	Decor.Animate(top, 90, 0.5)
+	Builder.Sparkles(core, Color3.fromRGB(200, 150, 255), 10)
+	Builder.Billboard(top, "AURA COLLECTOR", UDim2.new(8, 0, 1.5, 0), Vector3.new(0, 2.2, 0))
 
 	collector.Touched:Connect(function(hit)
 		if not isPlotOrb(plot, hit) or hit:GetAttribute("Collected") then
@@ -168,21 +213,46 @@ end
 
 local function buildDropper(plot, item, folder: Instance, session)
 	local z = Config.Lines[item.Line].Z
-	local dark = Color3.fromRGB(30, 30, 40)
-	Builder.Part({ Name = "Pillar", Size = Vector3.new(2, 11, 2), CFrame = at(plot, item.X, 6.5, z + 7), Color = dark, Parent = folder })
-	Builder.Part({ Name = "Arm", Size = Vector3.new(2, 1.2, 8), CFrame = at(plot, item.X, 11.5, z + 3.5), Color = dark, Parent = folder })
-	local head = Builder.Part({
-		Name = "Head",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(4.5, 4.5, 4.5),
-		CFrame = at(plot, item.X, 10, z),
+	local accent = item.Color:Lerp(Color3.new(0, 0, 0), 0.35)
+	Builder.Part({ Name = "Foot", Size = Vector3.new(4, 1, 4), CFrame = at(plot, item.X, 1.5, z + 7), Material = Enum.Material.DiamondPlate, Color = METAL, Parent = folder })
+	Builder.Part({ Name = "Pillar", Size = Vector3.new(2, 11, 2), CFrame = at(plot, item.X, 7, z + 7), Material = Enum.Material.Metal, Color = METAL, Parent = folder })
+	Builder.Part({ Name = "PillarStripe", Size = Vector3.new(2.1, 1, 2.1), CFrame = at(plot, item.X, 5, z + 7), Color = item.Color, Material = Enum.Material.SmoothPlastic, Parent = folder })
+	Builder.Part({ Name = "Arm", Size = Vector3.new(2, 1.2, 6), CFrame = at(plot, item.X, 11.8, z + 4), Material = Enum.Material.Metal, Color = METAL, Parent = folder })
+	-- De machine boven de band
+	Builder.Part({ Name = "Housing", Size = Vector3.new(4.4, 3, 4.4), CFrame = at(plot, item.X, 11, z), Material = Enum.Material.SmoothPlastic, Color = accent, Parent = folder })
+	Builder.Part({ Name = "HousingTrim", Size = Vector3.new(4.8, 0.5, 4.8), CFrame = at(plot, item.X, 12.6, z), Material = Enum.Material.Metal, Color = METAL, Parent = folder })
+	local window = Builder.Part({
+		Name = "Window",
+		Size = Vector3.new(2.6, 1.6, 0.2),
+		CFrame = at(plot, item.X, 11, z - 2.25),
 		Material = Enum.Material.Neon,
 		Color = item.Color,
 		CanCollide = false,
 		Parent = folder,
 	})
-	Builder.Sparkles(head, item.Color, 6)
-	Builder.Billboard(head, item.Name, UDim2.new(8, 0, 1.4, 0), Vector3.new(0, 3.6, 0), item.Color)
+	Decor.Animate(window, nil, nil, 0.3)
+	Builder.Part({
+		Name = "Nozzle",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1.4, 1.8, 1.8),
+		CFrame = at(plot, item.X, 8.9, z) * CFrame.Angles(0, 0, math.rad(90)),
+		Material = Enum.Material.Metal,
+		Color = DARK_METAL,
+		CanCollide = false,
+		Parent = folder,
+	})
+	local gem = Builder.Part({
+		Name = "Gem",
+		Size = Vector3.one * 2.2,
+		CFrame = at(plot, item.X, 15, z) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
+		Material = Enum.Material.Neon,
+		Color = item.Color,
+		CanCollide = false,
+		Parent = folder,
+	})
+	Decor.Animate(gem, 120, 0.6)
+	Builder.Sparkles(gem, item.Color, 6)
+	Builder.Billboard(gem, item.Name, UDim2.new(8, 0, 1.4, 0), Vector3.new(0, 2.6, 0), item.Color)
 
 	local owner = plot.Owner
 	task.spawn(function()
@@ -198,21 +268,22 @@ end
 
 local function buildUpgrader(plot, item, folder: Instance)
 	local z = Config.Lines[item.Line].Z
-	local frameColor = Color3.fromRGB(30, 30, 40)
 	for _, side in { -1, 1 } do
-		Builder.Part({ Name = "Post", Size = Vector3.new(1, 6, 1), CFrame = at(plot, item.X, 4, z + side * 3.9), Color = frameColor, Parent = folder })
+		Builder.Part({ Name = "Post", Size = Vector3.new(1.4, 7, 1.4), CFrame = at(plot, item.X, 4.5, z + side * 4), Material = Enum.Material.Metal, Color = METAL, Parent = folder })
+		Builder.Part({ Name = "PostLight", Size = Vector3.new(1.5, 0.6, 1.5), CFrame = at(plot, item.X, 6.5, z + side * 4), Material = Enum.Material.Neon, Color = item.Color, Parent = folder })
 	end
-	local bar = Builder.Part({ Name = "Bar", Size = Vector3.new(1, 1, 8.8), CFrame = at(plot, item.X, 7.5, z), Color = frameColor, Parent = folder })
+	local bar = Builder.Part({ Name = "Bar", Size = Vector3.new(1.6, 1.4, 9.4), CFrame = at(plot, item.X, 8.6, z), Material = Enum.Material.Metal, Color = METAL, Parent = folder })
 	local laser = Builder.Part({
 		Name = "Laser",
 		Size = Vector3.new(0.6, 3.5, 6.6),
 		CFrame = at(plot, item.X, 3.75, z),
 		Material = Enum.Material.Neon,
 		Color = item.Color,
-		Transparency = 0.45,
+		Transparency = 0.5,
 		CanCollide = false,
 		Parent = folder,
 	})
+	Decor.Animate(laser, nil, nil, 0.3)
 	Builder.Billboard(bar, item.Name .. " x" .. tostring(item.Multiplier), UDim2.new(9, 0, 1.4, 0), Vector3.new(0, 1.8, 0), item.Color)
 
 	local attribute = "Up_" .. item.Id
@@ -227,106 +298,127 @@ local function buildUpgrader(plot, item, folder: Instance)
 end
 
 local function buildWalls(plot, folder: Instance)
-	local half = Config.PlotSize / 2
-	local glass = Color3.fromRGB(150, 120, 255)
-	local function wall(size: Vector3, x: number, z: number)
-		Builder.Part({
-			Name = "Wall",
-			Size = size,
-			CFrame = at(plot, x, 5, z),
-			Material = Enum.Material.Glass,
-			Color = glass,
-			Transparency = 0.6,
-			Parent = folder,
-		})
-		Builder.Part({
-			Name = "WallGlow",
-			Size = Vector3.new(size.X, 0.5, size.Z) + Vector3.new(0.2, 0, 0.2),
-			CFrame = at(plot, x, 9.25, z),
-			Material = Enum.Material.Neon,
-			Color = Color3.fromRGB(190, 140, 255),
-			Parent = folder,
-		})
+	-- Wit hek rondom het plot met stenen hoekpilaren
+	local half = Config.PlotSize / 2 - 1
+	local function p(x: number, z: number): Vector3
+		return at(plot, x, 1, z).Position
 	end
-	wall(Vector3.new(Config.PlotSize, 8, 1), 0, half)
-	wall(Vector3.new(1, 8, Config.PlotSize), half, 0)
-	wall(Vector3.new(1, 8, Config.PlotSize), -half, 0)
-	local pieceLength = half - 10
-	wall(Vector3.new(pieceLength, 8, 1), 10 + pieceLength / 2, -half)
-	wall(Vector3.new(pieceLength, 8, 1), -(10 + pieceLength / 2), -half)
+	Decor.Fence(p(-half, half), p(half, half), folder)
+	Decor.Fence(p(half, -half), p(half, half), folder)
+	Decor.Fence(p(-half, -half), p(-half, half), folder)
+	Decor.Fence(p(-half, -half), p(-15, -half), folder)
+	Decor.Fence(p(15, -half), p(half, -half), folder)
+	for _, corner in { Vector2.new(-half, -half), Vector2.new(half, -half), Vector2.new(-half, half), Vector2.new(half, half) } do
+		Builder.Part({ Name = "CornerPillar", Size = Vector3.new(2.4, 5, 2.4), CFrame = at(plot, corner.X, 3.5, corner.Y), Material = Enum.Material.Brick, Color = Color3.fromRGB(170, 160, 150), Parent = folder })
+		local cap = Builder.Part({
+			Name = "CornerGlow",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 2,
+			CFrame = at(plot, corner.X, 7, corner.Y),
+			Material = Enum.Material.Neon,
+			Color = plot.Accent,
+			Parent = folder,
+		})
+		Decor.Animate(cap, nil, 0.25)
+	end
 end
 
+local LAMP_SPOTS = { Vector2.new(-52, -40), Vector2.new(52, -40), Vector2.new(-52, 16), Vector2.new(52, 22), Vector2.new(-52, 52), Vector2.new(52, 52) }
+
 local function buildLamps(plot, folder: Instance)
-	for _, pos in { Vector2.new(-50, -50), Vector2.new(50, -50), Vector2.new(-50, 0), Vector2.new(50, 0), Vector2.new(-50, 50), Vector2.new(50, 50) } do
-		Builder.Part({ Name = "LampPost", Size = Vector3.new(1, 10, 1), CFrame = at(plot, pos.X, 6, pos.Y), Color = Color3.fromRGB(30, 30, 40), Parent = folder })
-		local bulb = Builder.Part({
-			Name = "Bulb",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.new(2.5, 2.5, 2.5),
-			CFrame = at(plot, pos.X, 11.5, pos.Y),
-			Material = Enum.Material.Neon,
-			Color = Color3.fromRGB(255, 200, 255),
-			Parent = folder,
-		})
-		local light = Instance.new("PointLight")
-		light.Range = 22
-		light.Brightness = 1.5
-		light.Color = Color3.fromRGB(220, 170, 255)
-		light.Parent = bulb
+	for _, spot in LAMP_SPOTS do
+		Decor.Lamp(at(plot, spot.X, 1, spot.Y).Position, folder, Color3.fromRGB(230, 180, 255))
 	end
 end
 
 local function buildTower(plot, folder: Instance)
-	Builder.Part({ Name = "TowerBase", Size = Vector3.new(10, 2, 10), CFrame = at(plot, -44, 2, 44), Color = Color3.fromRGB(30, 30, 40), Parent = folder })
-	local tower = Builder.Part({
-		Name = "Tower",
-		Size = Vector3.new(4, 36, 4),
-		CFrame = at(plot, -44, 21, 44),
-		Material = Enum.Material.Neon,
-		Color = Color3.fromRGB(170, 90, 255),
-		Parent = folder,
-	})
+	local function cylinder(name: string, height: number, width: number, y: number, material: Enum.Material, color: Color3)
+		return Builder.Part({
+			Name = name,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(height, width, width),
+			CFrame = at(plot, -44, y, 44) * CFrame.Angles(0, 0, math.rad(90)),
+			Material = material,
+			Color = color,
+			Parent = folder,
+		})
+	end
+	Builder.Part({ Name = "TowerBase", Size = Vector3.new(10, 2, 10), CFrame = at(plot, -44, 2, 44), Material = Enum.Material.Brick, Color = Color3.fromRGB(170, 160, 150), Parent = folder })
+	cylinder("Tower", 30, 5, 18, Enum.Material.SmoothPlastic, WHITE)
+	for _, y in { 10, 18, 26 } do
+		cylinder("TowerWindow", 2, 5.3, y, Enum.Material.Glass, Color3.fromRGB(120, 190, 255))
+	end
+	cylinder("TowerDeck", 1, 9, 33.5, Enum.Material.Metal, METAL)
 	local top = Builder.Part({
 		Name = "TowerTop",
 		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(9, 9, 9),
-		CFrame = at(plot, -44, 41, 44),
+		Size = Vector3.one * 6,
+		CFrame = at(plot, -44, 39, 44),
 		Material = Enum.Material.Neon,
-		Color = Color3.fromRGB(255, 120, 255),
+		Color = plot.Accent,
+		CanCollide = false,
 		Parent = folder,
 	})
-	Builder.Sparkles(tower, Color3.fromRGB(200, 140, 255), 20)
-	Builder.Sparkles(top, Color3.fromRGB(255, 180, 255), 30)
+	Decor.Animate(top, nil, 0.8)
+	local ring = Builder.Part({
+		Name = "TowerRing",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.4, 10, 10),
+		CFrame = at(plot, -44, 39, 44) * CFrame.Angles(math.rad(25), 0, math.rad(90)),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(255, 220, 100),
+		Transparency = 0.4,
+		CanCollide = false,
+		Parent = folder,
+	})
+	Decor.Animate(ring, 50)
+	Builder.Sparkles(top, Color3.fromRGB(255, 200, 255), 25)
 	local light = Instance.new("PointLight")
-	light.Range = 45
+	light.Range = 40
 	light.Brightness = 2
-	light.Color = Color3.fromRGB(220, 150, 255)
+	light.Color = plot.Accent
 	light.Parent = top
 end
 
 local function buildThrone(plot, folder: Instance)
-	local gold = Color3.fromRGB(255, 205, 60)
-	Builder.Part({ Name = "ThroneBase", Size = Vector3.new(14, 2, 10), CFrame = at(plot, 0, 2, 44), Material = Enum.Material.Marble, Color = Color3.fromRGB(240, 240, 250), Parent = folder })
-	Builder.Part({ Name = "ThroneBack", Size = Vector3.new(10, 12, 2), CFrame = at(plot, 0, 9, 48), Material = Enum.Material.Neon, Color = gold, Parent = folder })
+	local gold = Color3.fromRGB(255, 200, 60)
+	local velvet = Color3.fromRGB(170, 30, 60)
+	Builder.Part({ Name = "ThroneBase", Size = Vector3.new(14, 2, 10), CFrame = at(plot, 0, 2.6, 44), Material = Enum.Material.Marble, Color = WHITE, Parent = folder })
+	Builder.Part({ Name = "Carpet", Size = Vector3.new(6, 0.2, 5), CFrame = at(plot, 0, 1.7, 36.5), Material = Enum.Material.Fabric, Color = velvet, Parent = folder })
+	local back = Builder.Part({ Name = "ThroneBack", Size = Vector3.new(10, 12, 2), CFrame = at(plot, 0, 9.6, 48), Material = Enum.Material.Metal, Color = gold, Parent = folder })
+	Builder.Part({ Name = "ThroneCushion", Size = Vector3.new(7, 9, 0.6), CFrame = at(plot, 0, 9, 46.8), Material = Enum.Material.Fabric, Color = velvet, Parent = folder })
 	for _, side in { -1, 1 } do
-		Builder.Part({ Name = "ThroneArm", Size = Vector3.new(1.5, 3, 6), CFrame = at(plot, side * 4, 4.5, 45), Material = Enum.Material.Neon, Color = gold, Parent = folder })
+		Builder.Part({ Name = "ThroneArm", Size = Vector3.new(1.5, 3, 6), CFrame = at(plot, side * 4, 5.1, 45), Material = Enum.Material.Metal, Color = gold, Parent = folder })
+		local jewel = Builder.Part({
+			Name = "ThroneJewel",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 1.6,
+			CFrame = at(plot, side * 4.5, 16.4, 48),
+			Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(255, 80, 120),
+			Parent = folder,
+		})
+		Decor.Animate(jewel, nil, 0.2, 0.2)
 	end
 	local seat = Instance.new("Seat")
 	seat.Name = "ThroneSeat"
 	seat.Anchored = true
 	seat.Size = Vector3.new(6, 1, 5)
-	seat.CFrame = at(plot, 0, 3.5, 45)
-	seat.Color = Color3.fromRGB(150, 40, 200)
+	seat.CFrame = at(plot, 0, 4.1, 45)
+	seat.Color = velvet
 	seat.Material = Enum.Material.Fabric
 	seat.Parent = folder
-	Builder.Sparkles(seat, gold, 25)
-	local back = folder:FindFirstChild("ThroneBack") :: BasePart
+	Builder.Sparkles(back, gold, 15)
 	Builder.Billboard(back, "👑 AURA KING 👑", UDim2.new(12, 0, 2, 0), Vector3.new(0, 8, 0), gold)
 end
 
-local function buildItem(plot, item, session)
+local function buildItem(plot, item, session, animate: boolean?)
 	local folder = Instance.new("Model")
 	folder.Name = "Item_" .. item.Id
+	if animate then
+		-- De client laat het item dan in beeld "vallen" met een plopje
+		folder:SetAttribute("BuiltAt", workspace:GetServerTimeNow())
+	end
 	folder.Parent = plot.ItemFolder
 	if item.Type == "Dropper" then
 		buildDropper(plot, item, folder, session)
@@ -356,7 +448,9 @@ local function updateButtonColors(plot)
 	end
 	for itemId, button in plot.Buttons do
 		local item = Config.ItemsById[itemId]
-		button.Color = if data.Aura >= item.Price then AFFORD_COLOR else TOO_EXPENSIVE_COLOR
+		local color = if data.Aura >= item.Price then AFFORD_COLOR else TOO_EXPENSIVE_COLOR
+		button.Top.Color = color
+		button.Ring.Color = color
 	end
 end
 
@@ -364,7 +458,7 @@ local function refreshButtons(plot)
 	local data = plot.Owner and DataService.Get(plot.Owner)
 	for itemId, button in plot.Buttons do
 		if not data or data.Purchased[itemId] then
-			button:Destroy()
+			button.Model:Destroy()
 			plot.Buttons[itemId] = nil
 		end
 	end
@@ -375,19 +469,47 @@ local function refreshButtons(plot)
 		local unlocked = item.Requires == nil or data.Purchased[item.Requires]
 		if unlocked and not data.Purchased[item.Id] and not plot.Buttons[item.Id] then
 			local slot = Config.ButtonSlots[item.Index]
-			local button = Builder.Part({
-				Name = "Button_" .. item.Id,
-				Size = Vector3.new(5, 0.6, 5),
-				CFrame = at(plot, slot.X, 1.3, slot.Y),
+			local model = Instance.new("Model")
+			model.Name = "Button_" .. item.Id
+			model:SetAttribute("BuiltAt", workspace:GetServerTimeNow())
+			local flat = at(plot, slot.X, 0, slot.Y) * CFrame.Angles(0, 0, math.rad(90))
+			Builder.Part({
+				Name = "ButtonBase",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.6, 6.4, 6.4),
+				CFrame = flat + Vector3.new(0, 1.3, 0),
+				Material = Enum.Material.Metal,
+				Color = DARK_METAL,
+				Parent = model,
+			})
+			local ring = Builder.Part({
+				Name = "ButtonRing",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.3, 7.4, 7.4),
+				CFrame = flat + Vector3.new(0, 1.15, 0),
 				Material = Enum.Material.Neon,
 				Color = AFFORD_COLOR,
-				Parent = plot.ButtonFolder,
+				Transparency = 0.4,
+				CanCollide = false,
+				CanTouch = false,
+				Parent = model,
 			})
+			Decor.Animate(ring, nil, nil, 0.35)
+			local top = Builder.Part({
+				Name = "ButtonTop",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.6, 4.8, 4.8),
+				CFrame = flat + Vector3.new(0, 1.8, 0),
+				Material = Enum.Material.Neon,
+				Color = AFFORD_COLOR,
+				Parent = model,
+			})
+			model.Parent = plot.ButtonFolder
 			local priceText = if item.Price == 0 then "FREE" else Format.Number(item.Price) .. " Aura"
-			Builder.Billboard(button, item.Name .. "\n" .. priceText, UDim2.new(7, 0, 3, 0), Vector3.new(0, 3, 0))
+			Builder.Billboard(top, item.Name .. "\n" .. priceText, UDim2.new(7, 0, 3, 0), Vector3.new(0, 3.2, 0))
 
 			local debounce = false
-			button.Touched:Connect(function(hit)
+			top.Touched:Connect(function(hit)
 				if debounce then
 					return
 				end
@@ -400,7 +522,7 @@ local function refreshButtons(plot)
 				task.wait(0.6)
 				debounce = false
 			end)
-			plot.Buttons[item.Id] = button
+			plot.Buttons[item.Id] = { Model = model, Top = top, Ring = ring }
 		end
 	end
 	updateButtonColors(plot)
@@ -417,7 +539,7 @@ local function clearPlot(plot)
 	plot.ItemFolder:ClearAllChildren()
 	plot.OrbFolder:ClearAllChildren()
 	for _, button in plot.Buttons do
-		button:Destroy()
+		button.Model:Destroy()
 	end
 	plot.Buttons = {}
 	plot.Stored = 0
@@ -461,32 +583,64 @@ local function createPlot(index: number, parent: Instance)
 	model.Parent = parent
 	plot.Model = model
 
+	plot.Accent = PLOT_COLORS[(index - 1) % #PLOT_COLORS + 1]
+	local accent = plot.Accent
+
+	-- Vloer met een gekleurde rand
 	Builder.Part({
 		Name = "Floor",
 		Size = Vector3.new(Config.PlotSize, 1, Config.PlotSize),
 		CFrame = at(plot, 0, 0.5, 0),
-		Color = PLOT_COLORS[(index - 1) % #PLOT_COLORS + 1],
-		Material = Enum.Material.Slate,
+		Color = Color3.fromRGB(200, 200, 205),
+		Material = Enum.Material.Concrete,
 		Parent = model,
 	})
-	Builder.Part({
+	local half = Config.PlotSize / 2
+	local function curb(size: Vector3, x: number, z: number)
+		Builder.Part({ Name = "Curb", Size = size, CFrame = at(plot, x, 1.1, z), Material = Enum.Material.SmoothPlastic, Color = accent, Parent = model })
+	end
+	curb(Vector3.new(Config.PlotSize, 0.4, 1.4), 0, half - 0.7)
+	curb(Vector3.new(1.4, 0.4, Config.PlotSize), half - 0.7, 0)
+	curb(Vector3.new(1.4, 0.4, Config.PlotSize), -(half - 0.7), 0)
+	curb(Vector3.new(half - 9, 0.4, 1.4), (half + 9) / 2, -(half - 0.7))
+	curb(Vector3.new(half - 9, 0.4, 1.4), -(half + 9) / 2, -(half - 0.7))
+	-- Looppad van de ingang naar het midden
+	Builder.Part({ Name = "Walkway", Size = Vector3.new(12, 0.2, 40), CFrame = at(plot, 0, 1.05, -35), Material = Enum.Material.Brick, Color = Color3.fromRGB(190, 160, 130), Parent = model })
+
+	local spawnPad = Builder.Part({
 		Name = "SpawnPad",
-		Size = Vector3.new(8, 0.2, 8),
-		CFrame = at(plot, 0, 1.1, -46),
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 8, 8),
+		CFrame = at(plot, 0, 1.2, -46) * CFrame.Angles(0, 0, math.rad(90)),
 		Material = Enum.Material.Neon,
 		Color = Color3.fromRGB(120, 200, 255),
+		Transparency = 0.3,
 		CanCollide = false,
 		Parent = model,
 	})
+	Decor.Animate(spawnPad, nil, nil, 0.25)
 
+	-- Poort met naambord
 	for _, side in { -1, 1 } do
-		Builder.Part({ Name = "SignPost", Size = Vector3.new(1, 12, 1), CFrame = at(plot, side * 12.5, 7, -53), Color = Color3.fromRGB(30, 30, 40), Parent = model })
+		Builder.Part({ Name = "GatePillar", Size = Vector3.new(2.4, 14, 2.4), CFrame = at(plot, side * 13, 8, -53), Material = Enum.Material.SmoothPlastic, Color = WHITE, Parent = model })
+		Builder.Part({ Name = "GateCap", Size = Vector3.new(3, 1, 3), CFrame = at(plot, side * 13, 15.5, -53), Material = Enum.Material.SmoothPlastic, Color = accent, Parent = model })
+		local gem = Builder.Part({
+			Name = "GateGem",
+			Size = Vector3.one * 1.6,
+			CFrame = at(plot, side * 13, 17.4, -53) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
+			Material = Enum.Material.Neon,
+			Color = accent,
+			CanCollide = false,
+			Parent = model,
+		})
+		Decor.Animate(gem, 80, 0.3)
 	end
 	local sign = Builder.Part({
 		Name = "Sign",
-		Size = Vector3.new(26, 5, 1),
-		CFrame = at(plot, 0, 11, -53),
-		Color = Color3.fromRGB(25, 20, 40),
+		Size = Vector3.new(24, 5, 1),
+		CFrame = at(plot, 0, 12, -53),
+		Material = Enum.Material.SmoothPlastic,
+		Color = accent:Lerp(Color3.new(0, 0, 0), 0.45),
 		Parent = model,
 	})
 	local surface = Instance.new("SurfaceGui")
@@ -500,18 +654,93 @@ local function createPlot(index: number, parent: Instance)
 	signLabel.BackgroundTransparency = 1
 	signLabel.Font = Enum.Font.FredokaOne
 	signLabel.TextScaled = true
-	signLabel.TextColor3 = Color3.fromRGB(230, 200, 255)
+	signLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	signLabel.Parent = surface
+	local signStroke = Instance.new("UIStroke")
+	signStroke.Thickness = 3
+	signStroke.Parent = signLabel
 	plot.SignLabel = signLabel
 
-	local collectPad = Builder.Part({
-		Name = "CollectPad",
-		Size = Vector3.new(9, 0.4, 9),
-		CFrame = at(plot, 44, 1.2, 9),
-		Material = Enum.Material.Neon,
-		Color = Color3.fromRGB(255, 220, 80),
+	-- Aura HQ: een gebouwtje achterin met ramen en een dak (hier komt later de troon)
+	Builder.Part({ Name = "HQFloor", Size = Vector3.new(36, 0.6, 20), CFrame = at(plot, 0, 1.3, 44), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(175, 130, 90), Parent = model })
+	Builder.Part({ Name = "HQBack", Size = Vector3.new(36, 17, 1), CFrame = at(plot, 0, 10, 53.5), Material = Enum.Material.SmoothPlastic, Color = WHITE, Parent = model })
+	for _, side in { -1, 1 } do
+		Builder.Part({ Name = "HQSide", Size = Vector3.new(1, 17, 14), CFrame = at(plot, side * 17.5, 10, 46.5), Material = Enum.Material.SmoothPlastic, Color = WHITE, Parent = model })
+		Builder.Part({ Name = "HQWindow", Size = Vector3.new(1.2, 6, 8), CFrame = at(plot, side * 17.5, 10, 46.5), Material = Enum.Material.Glass, Color = Color3.fromRGB(150, 210, 255), Transparency = 0.3, Parent = model })
+		Builder.Part({ Name = "HQPillar", Size = Vector3.new(2, 17, 2), CFrame = at(plot, side * 17, 10, 35), Material = Enum.Material.SmoothPlastic, Color = WHITE, Parent = model })
+		Builder.Part({ Name = "HQPlant", Shape = Enum.PartType.Ball, Size = Vector3.one * 3, CFrame = at(plot, side * 13, 4, 36.5), Material = Enum.Material.Grass, Color = Color3.fromRGB(70, 150, 70), CanCollide = false, Parent = model })
+		Builder.Part({ Name = "HQPot", Size = Vector3.new(2.4, 2, 2.4), CFrame = at(plot, side * 13, 2.6, 36.5), Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(190, 110, 70), Parent = model })
+	end
+	Builder.Part({ Name = "HQRoof", Size = Vector3.new(40, 1.4, 23), CFrame = at(plot, 0, 19.2, 44), Material = Enum.Material.SmoothPlastic, Color = accent, Parent = model })
+	Builder.Part({ Name = "HQRoofTrim", Size = Vector3.new(40.4, 0.6, 23.4), CFrame = at(plot, 0, 18.2, 44), Material = Enum.Material.SmoothPlastic, Color = WHITE, Parent = model })
+	local hqSign = Builder.Part({ Name = "HQSign", Size = Vector3.new(16, 3, 0.6), CFrame = at(plot, 0, 21.4, 33), Material = Enum.Material.SmoothPlastic, Color = WHITE, Parent = model })
+	local hqGui = Instance.new("SurfaceGui")
+	hqGui.Face = Enum.NormalId.Front
+	hqGui.LightInfluence = 0
+	hqGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	hqGui.PixelsPerStud = 40
+	hqGui.Parent = hqSign
+	local hqLabel = Instance.new("TextLabel")
+	hqLabel.Size = UDim2.fromScale(1, 1)
+	hqLabel.BackgroundTransparency = 1
+	hqLabel.Font = Enum.Font.FredokaOne
+	hqLabel.TextScaled = true
+	hqLabel.Text = "✨ AURA HQ ✨"
+	hqLabel.TextColor3 = accent:Lerp(Color3.new(0, 0, 0), 0.3)
+	hqLabel.Parent = hqGui
+
+	-- Groen: bomen, struiken, bloembakken, een bankje en een fontein
+	local decor = Instance.new("Folder")
+	decor.Name = "Decor"
+	decor.Parent = model
+	local function p(x: number, z: number): Vector3
+		return at(plot, x, 1, z).Position
+	end
+	Decor.Tree(p(-46, -47), 1, decor)
+	Decor.Tree(p(46, -47), 1, decor)
+	Decor.Bush(p(-49, -22), 1, decor)
+	Decor.Bush(p(49, -22), 1, decor)
+	Decor.Bush(p(49, 36), 1, decor)
+	Decor.Planter(at(plot, -26, 1, -50), 12, decor)
+	Decor.Planter(at(plot, 26, 1, -50), 12, decor)
+	Decor.Planter(at(plot, -29, 1, 52.5), 10, decor)
+	Decor.Bench(at(plot, -29, 1, 48.5), decor)
+	Decor.Fountain(p(36, 44), 5, decor)
+	Decor.Flowers(p(-49, 36), decor, 6)
+	Decor.Flowers(p(24, 50), decor, 5)
+
+	-- Ophalen: een grote gouden knop
+	Builder.Part({
+		Name = "CollectBase",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.6, 11, 11),
+		CFrame = at(plot, 44, 1.3, 9) * CFrame.Angles(0, 0, math.rad(90)),
+		Material = Enum.Material.Metal,
+		Color = DARK_METAL,
 		Parent = model,
 	})
+	local collectPad = Builder.Part({
+		Name = "CollectPad",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.6, 9, 9),
+		CFrame = at(plot, 44, 1.8, 9) * CFrame.Angles(0, 0, math.rad(90)),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(255, 210, 60),
+		Parent = model,
+	})
+	local collectRing = Builder.Part({
+		Name = "CollectRing",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 12.4, 12.4),
+		CFrame = at(plot, 44, 1.15, 9) * CFrame.Angles(0, 0, math.rad(90)),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(255, 230, 120),
+		Transparency = 0.4,
+		CanCollide = false,
+		CanTouch = false,
+		Parent = model,
+	})
+	Decor.Animate(collectRing, nil, nil, 0.35)
 	plot.StoredLabel = Builder.Billboard(collectPad, "COLLECT", UDim2.new(10, 0, 3.5, 0), Vector3.new(0, 4, 0), Color3.fromRGB(255, 230, 120))
 	local lastCollect = 0
 	collectPad.Touched:Connect(function(hit)
@@ -561,6 +790,7 @@ function TycoonService.Claim(player: Player): boolean
 		if not plot.Owner then
 			plot.Owner = player
 			plotByPlayer[player] = plot
+			plot.Model:SetAttribute("OwnerId", player.UserId)
 			rebuildPlot(plot)
 			return true
 		end
@@ -576,6 +806,7 @@ function TycoonService.Release(player: Player)
 	plotByPlayer[player] = nil
 	clearPlot(plot)
 	plot.Owner = nil
+	plot.Model:SetAttribute("OwnerId", nil)
 	updateSign(plot)
 	updateStoredLabel(plot)
 end
@@ -618,7 +849,7 @@ function TycoonService.Purchase(player: Player, itemId: string)
 	end
 	data.Aura -= item.Price
 	data.Purchased[item.Id] = true
-	buildItem(plot, item, plot.Session)
+	buildItem(plot, item, plot.Session, true)
 	refreshButtons(plot)
 	DataService.Changed(player)
 	Bus.Fire("Bought", player, item)
