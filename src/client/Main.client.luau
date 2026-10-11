@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Auras = require(Shared:WaitForChild("Auras"))
 local Config = require(Shared:WaitForChild("Config"))
 local Format = require(Shared:WaitForChild("Format"))
+local Levels = require(Shared:WaitForChild("Levels"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -73,7 +74,7 @@ local hud = Ui.Create("Frame", {
 	Name = "Hud",
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 10),
-	Size = UDim2.fromOffset(340, 78),
+	Size = UDim2.fromOffset(340, 106),
 	BackgroundColor3 = Colors.Panel,
 	BackgroundTransparency = 0.1,
 	Parent = screen,
@@ -94,10 +95,29 @@ local incomeLabel = Ui.Label({
 	Parent = hud,
 })
 
+-- Aura Level balk in de teller
+local levelBack = Ui.Create("Frame", {
+	Position = UDim2.fromOffset(10, 76),
+	Size = UDim2.new(1, -20, 0, 22),
+	BackgroundColor3 = Colors.PanelLight,
+	Parent = hud,
+}, { Ui.Corner(8) })
+local levelFill = Ui.Create("Frame", {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Color3.fromRGB(90, 200, 255),
+	Parent = levelBack,
+}, { Ui.Corner(8) })
+local levelLabel = Ui.Label({
+	Size = UDim2.fromScale(1, 1),
+	Text = "Lv 1",
+	ZIndex = 2,
+	Parent = levelBack,
+})
+
 -- Actieve boosts onder de teller
 local chipRow = Ui.Create("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 94),
+	Position = UDim2.new(0.5, 0, 0, 122),
 	Size = UDim2.fromOffset(600, 30),
 	BackgroundTransparency = 1,
 	Parent = screen,
@@ -131,7 +151,7 @@ makeChip("Friends", 4, Color3.fromRGB(200, 80, 140))
 -- Event banner
 local eventBanner = Ui.Label({
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 128),
+	Position = UDim2.new(0.5, 0, 0, 156),
 	Size = UDim2.fromOffset(460, 30),
 	BackgroundTransparency = 0.2,
 	BackgroundColor3 = Colors.Panel,
@@ -142,6 +162,7 @@ local eventBanner = Ui.Label({
 Ui.Corner(8).Parent = eventBanner
 
 -- Aura farm knop + Aura Meter onderaan
+local openPanel: (name: string) -> () -- staat verderop
 local selectedPose = 1
 local poseBar = Ui.Create("Frame", {
 	AnchorPoint = Vector2.new(0.5, 1),
@@ -172,6 +193,9 @@ local function poseAt(index: number)
 	return Config.Poses[(index - 1) % #Config.Poses + 1]
 end
 local function poseLocked(pose): boolean
+	if pose.Level then
+		return not state or state.Level < pose.Level
+	end
 	return pose.Vip == true and not (state and state.Passes.VIP)
 end
 local farmButton = Ui.Button({
@@ -186,6 +210,10 @@ local farmButton = Ui.Button({
 		return
 	end
 	local pose = poseAt(selectedPose)
+	if poseLocked(pose) and pose.Level then
+		openPanel("Levels")
+		return
+	end
 	if poseLocked(pose) then
 		local vip = Config.GamePasses.VIP
 		if vip.Id ~= 0 then
@@ -213,7 +241,8 @@ local function refreshPoseBar()
 	local pose = poseAt(selectedPose)
 	poseButton.Text = (if poseLocked(pose) then "🔒 " else "") .. pose.Name .. " ▶"
 	local posing = player:GetAttribute("Posing") ~= nil
-	farmButton.Text = if posing then "STOP" elseif poseLocked(pose) then "🔒 VIP POSE" else "🕺 AURA FARM"
+	local lockedText = if pose.Level then "🔒 LEVEL " .. pose.Level else "🔒 VIP POSE"
+	farmButton.Text = if posing then "STOP" elseif poseLocked(pose) then lockedText else "🕺 AURA FARM"
 	farmButton.BackgroundColor3 = if posing then Colors.Red else Color3.fromRGB(130, 70, 230)
 end
 player:GetAttributeChangedSignal("Posing"):Connect(refreshPoseBar)
@@ -273,7 +302,7 @@ local function togglePanel(name: string)
 	openPanelName = if openPanelName == name then nil else name
 end
 
-local function openPanel(name: string)
+function openPanel(name: string)
 	if openPanelName ~= name then
 		togglePanel(name)
 	end
@@ -828,6 +857,180 @@ for index in Config.PlaytimeGifts do
 	giftButtons[index] = { Button = button, Reward = rewardLabel }
 end
 
+-- Levels panel (Level Road: wat krijg je bij welk level) ----------------
+local _, levelsBody = makePanel("Levels", "⭐ Aura Levels")
+local levelsInfo = Ui.Label({
+	Size = UDim2.new(1, 0, 0, 26),
+	Text = "",
+	TextColor3 = Colors.Gold,
+	Parent = levelsBody,
+})
+Ui.Label({
+	Position = UDim2.fromOffset(0, 28),
+	Size = UDim2.new(1, 0, 0, 20),
+	Text = "Get XP: aura farm (pose!), PEAK AURA, battles, Aura Tower, quests",
+	TextColor3 = Colors.SubText,
+	Parent = levelsBody,
+})
+Ui.Label({
+	Position = UDim2.fromOffset(0, 50),
+	Size = UDim2.new(1, 0, 0, 20),
+	Text = "EVERY level: a big bag of Aura + 3% more Aura forever",
+	TextColor3 = Colors.Green,
+	Parent = levelsBody,
+})
+local levelsList = makeList(levelsBody, UDim2.fromOffset(0, 76), UDim2.new(1, 0, 1, -76))
+local levelsKey = -1
+
+local function refreshLevels()
+	if not state or state.Level == levelsKey then
+		return
+	end
+	levelsKey = state.Level
+	for _, child in levelsList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local order = 0
+	for level = 2, Levels.MaxLevel do
+		local lines = Levels.MilestoneText(level)
+		if #lines == 0 then
+			continue
+		end
+		order += 1
+		local reached = state.Level >= level
+		local isNext = not reached and levelsList:FindFirstChild("Next") == nil
+		local row = Ui.Create("Frame", {
+			Name = if isNext then "Next" else "Row",
+			Size = UDim2.new(1, 0, 0, 30 + #lines * 20),
+			BackgroundColor3 = if reached then Color3.fromRGB(40, 110, 70) elseif isNext then Color3.fromRGB(110, 70, 30) else Colors.Panel,
+			LayoutOrder = level,
+			Parent = levelsList,
+		}, { Ui.Corner(10) })
+		local title = Levels.TitleFor(level)
+		Ui.Label({
+			Position = UDim2.fromOffset(10, 4),
+			Size = UDim2.new(1, -20, 0, 24),
+			Text = (if reached then "✅ " elseif isNext then "⭐ NEXT: " else "🔒 ") .. "Level " .. level .. (if title.Level == level then "  (" .. title.Title .. ")" else ""),
+			TextColor3 = if reached then Colors.Text else Colors.Gold,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Parent = row,
+		})
+		for index, line in lines do
+			Ui.Label({
+				Position = UDim2.fromOffset(28, 6 + index * 20),
+				Size = UDim2.new(1, -40, 0, 18),
+				Text = "• " .. line,
+				TextColor3 = Colors.SubText,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = row,
+			})
+		end
+	end
+end
+
+------------------------------------------------------------------------
+-- Level up feest
+------------------------------------------------------------------------
+
+local levelUpFrame = Ui.Create("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.36),
+	Size = UDim2.fromOffset(460, 250),
+	BackgroundColor3 = Color3.fromRGB(40, 25, 70),
+	BackgroundTransparency = 0.05,
+	Visible = false,
+	ZIndex = 20,
+	Parent = screen,
+}, { Ui.Corner(22), Ui.Stroke(Colors.Gold, 4) })
+local levelUpScale = Ui.Create("UIScale", { Parent = levelUpFrame })
+Ui.Label({
+	Position = UDim2.fromOffset(10, 8),
+	Size = UDim2.new(1, -20, 0, 64),
+	Text = "LEVEL UP!",
+	TextColor3 = Colors.Gold,
+	ZIndex = 21,
+	Parent = levelUpFrame,
+})
+local levelUpLevel = Ui.Label({
+	Position = UDim2.fromOffset(10, 70),
+	Size = UDim2.new(1, -20, 0, 34),
+	Text = "",
+	ZIndex = 21,
+	Parent = levelUpFrame,
+})
+local levelUpRewards = Ui.Label({
+	Position = UDim2.fromOffset(20, 110),
+	Size = UDim2.new(1, -40, 1, -120),
+	Text = "",
+	TextColor3 = Color3.fromRGB(170, 255, 190),
+	TextYAlignment = Enum.TextYAlignment.Top,
+	TextScaled = false,
+	TextSize = 22,
+	TextWrapped = true,
+	ZIndex = 21,
+	Parent = levelUpFrame,
+})
+
+local CONFETTI = {
+	Color3.fromRGB(255, 90, 120),
+	Color3.fromRGB(255, 220, 70),
+	Color3.fromRGB(120, 220, 255),
+	Color3.fromRGB(180, 120, 255),
+	Color3.fromRGB(110, 255, 150),
+}
+local function confetti()
+	for _ = 1, 60 do
+		local piece = Ui.Create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(math.random(), 0, -0.05, 0),
+			Size = UDim2.fromOffset(math.random(8, 14), math.random(14, 22)),
+			Rotation = math.random(0, 360),
+			BackgroundColor3 = CONFETTI[math.random(1, #CONFETTI)],
+			BorderSizePixel = 0,
+			ZIndex = 19,
+			Parent = screen,
+		})
+		local duration = 1.8 + math.random() * 1.6
+		TweenService:Create(piece, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(piece.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.05, 0),
+			Rotation = piece.Rotation + math.random(-540, 540),
+		}):Play()
+		task.delay(duration, function()
+			piece:Destroy()
+		end)
+	end
+end
+
+local levelUpToken = 0
+Remotes.LevelUp.OnClientEvent:Connect(function(level, lines, newTitle)
+	levelUpToken += 1
+	local token = levelUpToken
+	levelUpLevel.Text = "You are now Level " .. tostring(level) .. (if newTitle then "  •  " .. newTitle else "")
+	levelUpRewards.Text = table.concat(lines, "\n")
+	levelUpFrame.Visible = true
+	levelUpScale.Scale = 0.3
+	TweenService:Create(levelUpScale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	confetti()
+	task.spawn(function()
+		for step = 1, 4 do
+			playPing(1 + step * 0.25)
+			task.wait(0.12)
+		end
+	end)
+	task.delay(5, function()
+		if token == levelUpToken then
+			levelUpFrame.Visible = false
+		end
+	end)
+end)
+levelUpFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		levelUpFrame.Visible = false
+	end
+end)
+
 ------------------------------------------------------------------------
 -- Menu links
 ------------------------------------------------------------------------
@@ -880,6 +1083,7 @@ menuButton(4, "Daily", "🎁", "Daily", Color3.fromRGB(220, 70, 120))
 menuButton(5, "Quests", "📜", "Quests", Color3.fromRGB(90, 160, 200))
 menuButton(6, "Gifts", "🎉", "Gifts", Color3.fromRGB(240, 120, 60))
 menuButton(7, "Codes", "🎟️", "Codes", Color3.fromRGB(60, 130, 220))
+menuButton(8, "Levels", "⭐", "Levels", Color3.fromRGB(40, 170, 200))
 
 ------------------------------------------------------------------------
 -- Meldingen
@@ -1024,6 +1228,9 @@ local function refreshStatic(listChanged: boolean)
 		return
 	end
 	auraLabel.Text = "✨ " .. Format.Number(state.Aura) .. " Aura"
+	local title = Levels.TitleFor(state.Level)
+	levelFill.Size = UDim2.fromScale(math.clamp(state.XP / math.max(1, state.XPNeeded), 0, 1), 1)
+	levelLabel.Text = "Lv " .. state.Level .. " " .. title.Title .. "  •  " .. Format.Number(state.XP) .. "/" .. Format.Number(state.XPNeeded) .. " XP"
 	incomeLabel.Text = "x" .. tostring(math.floor(state.Multiplier * 100) / 100) .. " boost  •  " .. Format.Number(state.IncomePerSecond) .. "/s"
 
 	rollButton.Text = "Roll (" .. Format.Number(state.RollCost) .. ")"
@@ -1059,6 +1266,8 @@ local function refreshStatic(listChanged: boolean)
 	refreshShop()
 	refreshQuests()
 	refreshPoseBar()
+	refreshLevels()
+	levelsInfo.Text = "Level " .. state.Level .. " • " .. title.Title .. " • Aura x" .. string.format("%.2f", state.LevelMultiplier)
 end
 
 local function refreshTimers()

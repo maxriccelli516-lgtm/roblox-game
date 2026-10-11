@@ -19,7 +19,10 @@
         "SetAutoRoll": { "$className": "RemoteEvent" },
         "SetPose": { "$className": "RemoteEvent" },
         "ClaimQuest": { "$className": "RemoteEvent" },
-        "ClaimGift": { "$className": "RemoteEvent" }
+        "ClaimGift": { "$className": "RemoteEvent" },
+        "LevelUp": { "$className": "RemoteEvent" },
+        "BattleState": { "$className": "RemoteEvent" },
+        "BattleTap": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {

@@ -12,14 +12,21 @@ Auras.List = {
 	{ Name = "Golden Drip", Chance = 64, Multiplier = 2, Color = Color3.fromRGB(255, 205, 50) },
 	{ Name = "Red Rage", Chance = 128, Multiplier = 2.5, Color = Color3.fromRGB(255, 50, 50) },
 	{ Name = "Rainbow Rizz", Chance = 300, Multiplier = 3.5, Color = Color3.fromRGB(255, 255, 255), Rainbow = true },
+	{ Name = "Frost Sigma", Chance = 500, Multiplier = 4.2, Color = Color3.fromRGB(170, 235, 255) },
 	{ Name = "Main Character", Chance = 1000, Multiplier = 5, Color = Color3.fromRGB(255, 240, 150) },
 	{ Name = "Galaxy Sigma", Chance = 2500, Multiplier = 7, Color = Color3.fromRGB(110, 60, 255) },
+	{ Name = "Solar Flare", Chance = 5000, Multiplier = 9, Color = Color3.fromRGB(255, 140, 30) },
 	{ Name = "Void Aura", Chance = 10000, Multiplier = 12, Color = Color3.fromRGB(25, 0, 40) },
+	{ Name = "Glitch Aura", Chance = 25000, Multiplier = 18, Color = Color3.fromRGB(0, 255, 140), Rainbow = true },
 }
 
--- Alleen te krijgen met het Starter Pack (niet te rollen)
+-- Niet te rollen: Starter Pack en beloningen voor je Aura Level (zie Levels.luau)
 Auras.Exclusive = {
 	{ Name = "Starter Spark", Chance = 0, Multiplier = 1.25, Color = Color3.fromRGB(120, 255, 230), Exclusive = true },
+	{ Name = "Rookie Flame", Chance = 0, Multiplier = 1.6, Color = Color3.fromRGB(255, 120, 40), Exclusive = true, Level = 10 },
+	{ Name = "Ascended", Chance = 0, Multiplier = 2.6, Color = Color3.fromRGB(255, 250, 200), Exclusive = true, Level = 20 },
+	{ Name = "Aura Overlord", Chance = 0, Multiplier = 4.5, Color = Color3.fromRGB(220, 20, 60), Exclusive = true, Level = 30 },
+	{ Name = "Aura God", Chance = 0, Multiplier = 8, Color = Color3.fromRGB(255, 255, 255), Exclusive = true, Rainbow = true, Level = 50 },
 }
 
 Auras.ByName = {}
@@ -70,6 +77,9 @@ function Auras.Odds(luck: number?): { [string]: number }
 end
 
 function Auras.RarityText(aura): string
+	if aura.Level then
+		return "Level " .. aura.Level
+	end
 	if aura.Exclusive then
 		return "Exclusive"
 	end

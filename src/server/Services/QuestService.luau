@@ -82,6 +82,7 @@ function QuestService.Claim(player: Player, index: number)
 		return
 	end
 	quest.Claimed = true
+	Bus.Fire("QuestClaimed", player)
 	local entry = poolEntry(quest.Type)
 	if entry then
 		RewardService.Grant(player, entry.Reward, "Quest reward")
@@ -177,6 +178,14 @@ function QuestService.Init()
 	end)
 	Bus.On("PeakAura", function(player)
 		QuestService.Progress(player, "Peak", 1)
+	end)
+	Bus.On("BattleEnded", function(player, won)
+		if won then
+			QuestService.Progress(player, "Battle", 1)
+		end
+	end)
+	Bus.On("ObbyCleared", function(player)
+		QuestService.Progress(player, "Obby", 1)
 	end)
 
 	Remotes.ClaimQuest.OnServerEvent:Connect(function(player, index)

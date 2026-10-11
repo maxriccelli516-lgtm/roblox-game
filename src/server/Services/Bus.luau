@@ -1,7 +1,8 @@
 -- Een simpel berichtensysteem tussen services, zodat bijvoorbeeld quests kunnen horen
 -- dat iemand Aura heeft opgehaald zonder dat alles elkaar moet kennen.
 -- Berichten: "Collected" (player, amount), "Rolled" (player, aura, free), "Bought" (player, item),
--- "Posed" (player, seconds), "PeakAura" (player)
+-- "Posed" (player, seconds), "PeakAura" (player), "QuestClaimed" (player), "Rebirthed" (player),
+-- "BattleEnded" (player, won, vsBot), "ObbyCleared" (player), "LevelUp" (player, level)
 
 local Bus = {}
 

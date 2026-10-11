@@ -82,7 +82,13 @@ Config.Poses = {
 	{ Id = "SkyPoint", Name = "Sky Point" },
 	{ Id = "Sigma", Name = "Sigma Stare", Vip = true },
 	{ Id = "Hero", Name = "Main Character", Vip = true },
+	-- Deze poses krijg je door levels te halen (zie Levels.luau)
+	{ Id = "Lean", Name = "Aura Lean", Level = 3 },
+	{ Id = "Levitate", Name = "Levitate", Level = 10 },
+	{ Id = "Wings", Name = "Wings Out", Level = 20 },
 }
+-- PEAK AURA geeft ook meteen een zak Aura: zoveel minuten van je inkomen
+Config.PeakAuraRewardMinutes = 1
 
 -- Server events (zoals biomes in Sol's RNG): af en toe iets speciaals voor iedereen
 Config.EventEvery = 8 * 60 -- seconden tussen events
@@ -107,6 +113,26 @@ Config.IndexTiers = {
 	{ Count = 6, Luck = 0.1 },
 	{ Count = 9, Luck = 0.2 },
 	{ Count = 12, Luck = 0.3 },
+	{ Count = 15, Luck = 0.5 },
+}
+
+-- Aura Battles in de arena in het midden
+Config.Battle = {
+	CountdownSeconds = 3,
+	FightSeconds = 10,
+	MaxTapsPerSecond = 12, -- sneller tikken telt niet (tegen autoclickers)
+	BotWaitSeconds = 6, -- zo lang alleen op een plek staan, dan komt de Aura Bot
+	WinMinutes = 5, -- winnaar krijgt zoveel minuten van zijn inkomen
+	BotWinMinutes = 2,
+	MinimumReward = 400,
+	KnockoutLead = 0.95, -- de botsbal helemaal bij de ander = meteen gewonnen
+}
+
+-- Obby toren: bovenaan ligt een beloning
+Config.Obby = {
+	RewardMinutes = 10,
+	MinimumReward = 1500,
+	CooldownSeconds = 10 * 60,
 }
 
 -- Vrienden in dezelfde server geven een bonus
@@ -122,6 +148,8 @@ Config.QuestPool = {
 	{ Type = "Pose", Text = "Aura farm for %s seconds", Goal = 90, Reward = { Kind = "Double", Minutes = 5 } },
 	{ Type = "Peak", Text = "Reach PEAK AURA %s times", Goal = 2, Reward = { Kind = "Luck", Minutes = 8 } },
 	{ Type = "FreeRoll", Text = "Use %s free rolls", Goal = 5, Reward = { Kind = "Double", Minutes = 5 } },
+	{ Type = "Battle", Text = "Win %s Aura Battles", Goal = 2, Reward = { Kind = "Aura", Minutes = 8 } },
+	{ Type = "Obby", Text = "Climb the Aura Tower %s time", Goal = 1, Reward = { Kind = "Luck", Minutes = 10 } },
 }
 Config.QuestAllDoneReward = { Kind = "Luck", Minutes = 10 }
 
