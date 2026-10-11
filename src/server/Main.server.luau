@@ -5,20 +5,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Levels = require(ReplicatedStorage.Shared.Levels)
 
 local Services = script.Parent.Services
 local AuraService = require(Services.AuraService)
+local BattleService = require(Services.BattleService)
 local BoostService = require(Services.BoostService)
 local DataService = require(Services.DataService)
 local Economy = require(Services.Economy)
 local EventService = require(Services.EventService)
 local FriendService = require(Services.FriendService)
 local LeaderboardService = require(Services.LeaderboardService)
+local LevelService = require(Services.LevelService)
 local MapBuilder = require(Services.MapBuilder)
 local MonetizationService = require(Services.MonetizationService)
+local ObbyService = require(Services.ObbyService)
 local PoseService = require(Services.PoseService)
 local QuestService = require(Services.QuestService)
 local RewardService = require(Services.RewardService)
+local StatueService = require(Services.StatueService)
 local TycoonService = require(Services.TycoonService)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -33,6 +38,10 @@ QuestService.Init()
 PoseService.Init()
 FriendService.Init()
 EventService.Init()
+LevelService.Init()
+BattleService.Init(map)
+ObbyService.Init(map)
+StatueService.Init(map)
 LeaderboardService.Init(map)
 
 ------------------------------------------------------------------------
@@ -81,6 +90,12 @@ local function buildState(player: Player)
 		StarterPackBought = data.StarterPackBought,
 		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") ~= false,
 		Quest = QuestService.State(player),
+		Level = data.Level,
+		XP = data.XP,
+		XPNeeded = Levels.XpFor(data.Level),
+		LevelMultiplier = Levels.Multiplier(data.Level),
+		BattleWins = data.BattleWins,
+		ObbyIn = math.max(0, data.LastObby + Config.Obby.CooldownSeconds - os.time()),
 	}
 end
 
@@ -91,9 +106,13 @@ local function updateLeaderstats(player: Player)
 		return
 	end
 	local auraValue = stats:FindFirstChild("Aura") :: StringValue
+	local levelValue = stats:FindFirstChild("Level") :: IntValue
 	local rebirthValue = stats:FindFirstChild("Rebirths") :: IntValue
+	local winsValue = stats:FindFirstChild("Wins") :: IntValue
 	auraValue.Value = Format.Number(data.Aura)
+	levelValue.Value = data.Level
 	rebirthValue.Value = data.Rebirths
+	winsValue.Value = data.BattleWins
 end
 
 DataService.OnChanged(function(player)
@@ -146,6 +165,7 @@ local function onCharacterAdded(player: Player, character: Model)
 		character:PivotTo(spawnCFrame)
 	end
 	AuraService.ApplyVisual(player)
+	LevelService.ApplyTag(player)
 end
 
 local function onPlayerAdded(player: Player)
@@ -155,9 +175,16 @@ local function onPlayerAdded(player: Player)
 	auraValue.Name = "Aura"
 	auraValue.Value = "0"
 	auraValue.Parent = stats
+	local levelValue = Instance.new("IntValue")
+	levelValue.Name = "Level"
+	levelValue.Value = 1
+	levelValue.Parent = stats
 	local rebirthValue = Instance.new("IntValue")
 	rebirthValue.Name = "Rebirths"
 	rebirthValue.Parent = stats
+	local winsValue = Instance.new("IntValue")
+	winsValue.Name = "Wins"
+	winsValue.Parent = stats
 	stats.Parent = player
 
 	MonetizationService.LoadPasses(player)

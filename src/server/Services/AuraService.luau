@@ -58,7 +58,9 @@ function AuraService.ApplyVisual(player: Player)
 		else ColorSequence.new(aura.Color)
 
 	-- Hoe zeldzamer, hoe meer deeltjes
-	local power = math.clamp(math.log(aura.Chance + 1, 10), 0.3, 4)
+	-- (Level aura's tellen alsof ze heel zeldzaam zijn)
+	local chance = if aura.Level then 30 * aura.Level ^ 1.6 else aura.Chance
+	local power = math.clamp(math.log(chance + 1, 10), 0.3, 4)
 
 	local glow = Instance.new("ParticleEmitter")
 	glow.Name = "Glow"
@@ -76,7 +78,7 @@ function AuraService.ApplyVisual(player: Player)
 	})
 	glow.Parent = attachment
 
-	if aura.Chance >= 64 then
+	if chance >= 64 then
 		local flames = Instance.new("ParticleEmitter")
 		flames.Name = "Flames"
 		flames.Texture = "rbxasset://textures/particles/fire_main.dds"

@@ -277,4 +277,117 @@ function Decor.Fountain(position: Vector3, radius: number, parent: Instance)
 	water.Parent = spout
 end
 
+-- Standbeeld van een blokpoppetje in een aura farm pose, op een sokkel.
+-- cf: waar het standbeeld staat (kijkt naar -Z). arms: { Right = {P, R}, Left = {P, R} } in graden
+-- (P = arm naar voren/omhoog, R = arm opzij naar buiten). Geeft de bovenkant van de sokkel terug.
+function Decor.Statue(cf: CFrame, arms, scale: number, color: Color3, material: Enum.Material, title: string, parent: Instance)
+	local model = Instance.new("Model")
+	model.Name = "Statue"
+	local stone = Color3.fromRGB(225, 222, 230)
+	local steps = { { 9, 1.2 }, { 7.4, 1.2 }, { 6, 4 } }
+	local y = 0
+	for _, step in steps do
+		Builder.Part({
+			Name = "Pedestal",
+			Size = Vector3.new(step[1], step[2], step[1]),
+			CFrame = cf * CFrame.new(0, y + step[2] / 2, 0),
+			Material = Enum.Material.Marble,
+			Color = stone,
+			Parent = model,
+		})
+		y += step[2]
+	end
+	Builder.Part({
+		Name = "Trim",
+		Size = Vector3.new(6.2, 0.4, 6.2),
+		CFrame = cf * CFrame.new(0, y - 0.6, 0),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(255, 205, 90),
+		Parent = model,
+	})
+	local base = cf * CFrame.new(0, y, 0)
+	local s = scale
+	local function piece(name: string, size: Vector3, offset: CFrame)
+		Builder.Part({
+			Name = name,
+			Size = size * s,
+			CFrame = base * CFrame.new(offset.Position * s) * offset.Rotation,
+			Material = material,
+			Color = color,
+			Reflectance = if material == Enum.Material.Foil then 0.15 else 0,
+			Parent = model,
+		})
+	end
+	piece("LeftLeg", Vector3.new(1, 2, 1), CFrame.new(-0.5, 1, 0))
+	piece("RightLeg", Vector3.new(1, 2, 1), CFrame.new(0.5, 1, 0))
+	piece("Torso", Vector3.new(2, 2, 1), CFrame.new(0, 3, 0))
+	piece("Head", Vector3.new(1.2, 1.2, 1.2), CFrame.new(0, 4.6, 0) * CFrame.Angles(math.rad(-12), 0, 0))
+	for _, side in { "Right", "Left" } do
+		local values = arms[side] or { 0, 0 }
+		local sign = if side == "Right" then 1 else -1
+		local shoulder = CFrame.new(1.5 * sign, 3.9, 0) * CFrame.Angles(math.rad(values[1]), 0, math.rad(values[2]) * sign)
+		piece(side .. "Arm", Vector3.new(1, 2, 1), shoulder * CFrame.new(0, -0.9, 0))
+	end
+	local plaque = Builder.Part({
+		Name = "Plaque",
+		Size = Vector3.new(0.2, 0.2, 0.2),
+		CFrame = cf * CFrame.new(0, 3, -3.2),
+		Transparency = 1,
+		CanCollide = false,
+		Parent = model,
+	})
+	Builder.Billboard(plaque, title, UDim2.new(10, 0, 1.6, 0), Vector3.new(0, 0, 0), Color3.fromRGB(255, 225, 140))
+	model.Parent = parent
+	return base
+end
+
+-- Een rij heggetjes van a naar b met hier en daar bloemen erop
+function Decor.Hedge(a: Vector3, b: Vector3, parent: Instance)
+	local length = (b - a).Magnitude
+	local cf = CFrame.lookAt((a + b) / 2, b)
+	Builder.Part({
+		Name = "Hedge",
+		Size = Vector3.new(2.4, 2.6, length),
+		CFrame = cf + Vector3.new(0, 1.3, 0),
+		Material = Enum.Material.Grass,
+		Color = Color3.fromRGB(60, 135, 60),
+		Parent = parent,
+	})
+	if rng:NextNumber() < 0.6 then
+		Decor.Flowers((cf + Vector3.new(0, 2.5, 0)).Position, parent, 3)
+	end
+end
+
+-- Vlaggenmast met een wapperende (draaiende) vlag
+function Decor.Flag(position: Vector3, height: number, color: Color3, parent: Instance)
+	Builder.Part({
+		Name = "FlagPole",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, 0.6, 0.6),
+		CFrame = vertical(position + Vector3.new(0, height / 2, 0)),
+		Material = Enum.Material.Metal,
+		Color = Color3.fromRGB(220, 220, 225),
+		Parent = parent,
+	})
+	Builder.Part({
+		Name = "FlagTop",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 1.2,
+		CFrame = CFrame.new(position + Vector3.new(0, height + 0.4, 0)),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(255, 210, 90),
+		Parent = parent,
+	})
+	local flag = Builder.Part({
+		Name = "Flag",
+		Size = Vector3.new(0.2, 3.4, 5.5),
+		CFrame = CFrame.new(position + Vector3.new(0, height - 2, 2.9)),
+		Material = Enum.Material.Fabric,
+		Color = color,
+		CanCollide = false,
+		Parent = parent,
+	})
+	return flag
+end
+
 return Decor

@@ -1,8 +1,9 @@
 -- Rekent uit hoeveel extra Aura en geluk een speler krijgt
--- (rebirths, aura, gamepasses, boosts, PEAK AURA, events, vrienden, index).
+-- (rebirths, level, aura, gamepasses, boosts, PEAK AURA, events, vrienden, index).
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Auras = require(game.ReplicatedStorage.Shared.Auras)
+local Levels = require(game.ReplicatedStorage.Shared.Levels)
 local BoostService = require(script.Parent.BoostService)
 local DataService = require(script.Parent.DataService)
 
@@ -34,7 +35,7 @@ function Economy.GetMultiplier(player: Player): number
 	if not data then
 		return 1
 	end
-	local multiplier = Config.RebirthMultiplier(data.Rebirths) * Economy.AuraMultiplier(player)
+	local multiplier = Config.RebirthMultiplier(data.Rebirths) * Economy.AuraMultiplier(player) * Levels.Multiplier(data.Level)
 	if Economy.HasPass(player, "DoubleAura") then
 		multiplier *= 2
 	end
@@ -138,7 +139,7 @@ function Economy.BaseIncomePerSecond(player: Player): number
 	if not data then
 		return 0
 	end
-	return plotIncome(data) * Config.RebirthMultiplier(data.Rebirths) * Economy.AuraMultiplier(player)
+	return plotIncome(data) * Config.RebirthMultiplier(data.Rebirths) * Economy.AuraMultiplier(player) * Levels.Multiplier(data.Level)
 end
 
 return Economy

@@ -8,8 +8,10 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
 local BoostService = require(script.Parent.BoostService)
 local Bus = require(script.Parent.Bus)
+local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -103,6 +105,11 @@ function PoseService.Start(player: Player, poseId: string)
 		Remotes.Notify:FireClient(player, pose.Name .. " is a VIP pose!", "error")
 		return
 	end
+	local data = DataService.Get(player)
+	if pose.Level and (not data or data.Level < pose.Level) then
+		Remotes.Notify:FireClient(player, pose.Name .. " unlocks at Aura Level " .. pose.Level .. "!", "error")
+		return
+	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then
@@ -148,6 +155,13 @@ local function update(dt: number)
 			Bus.Fire("PeakAura", player)
 			burst(player)
 			popup(player, "PEAK AURA", Color3.fromRGB(255, 220, 90))
+			-- PEAK AURA geeft meteen een zak Aura
+			local data = DataService.Get(player)
+			if data then
+				local amount = math.floor(math.max(200 * (data.Rebirths + 1), Economy.BaseIncomePerSecond(player) * Config.PeakAuraRewardMinutes * 60))
+				DataService.AddAura(player, amount)
+				task.delay(0.5, popup, player, "+" .. Format.Number(amount) .. " AURA", Color3.fromRGB(255, 240, 150))
+			end
 		end
 		player:SetAttribute("AuraMeter", meter)
 

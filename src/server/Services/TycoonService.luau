@@ -872,6 +872,7 @@ function TycoonService.Rebirth(player: Player)
 	data.Purchased = {}
 	rebuildPlot(plot)
 	DataService.Changed(player)
+	Bus.Fire("Rebirthed", player)
 	notify(player, "REBIRTH! You now earn x" .. tostring(Config.RebirthMultiplier(data.Rebirths)) .. " Aura", "rare")
 	for _, other in Players:GetPlayers() do
 		if other ~= player then

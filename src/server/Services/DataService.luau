@@ -28,6 +28,12 @@ local TEMPLATE = {
 	Boosts = {},
 	Quests = { Day = 0, List = {}, AllClaimed = false },
 	StarterPackBought = false,
+	Level = 1,
+	XP = 0,
+	BattleWins = 0,
+	BattleLosses = 0,
+	ObbyClears = 0,
+	LastObby = 0,
 }
 
 local store: DataStore? = nil
