@@ -115,6 +115,9 @@ function MonetizationService.Init()
 		if key then
 			player:SetAttribute("Pass_" .. key, true)
 			Remotes.Notify:FireClient(player, "You got " .. Config.GamePasses[key].Name .. "!", "rare")
+			if key == "VIP" then
+				AuraService.ApplyVisual(player) -- [VIP] tag boven je hoofd
+			end
 			DataService.Changed(player)
 		end
 	end)

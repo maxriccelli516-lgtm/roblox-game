@@ -198,9 +198,21 @@ local function poseLocked(pose): boolean
 	end
 	return pose.Vip == true and not (state and state.Passes.VIP)
 end
+-- Een vergrendelde pose aanklikken: VIP kopen, of laten zien bij welk level hij open gaat
+local function unlockHint(pose)
+	if pose.Level then
+		openPanel("Levels")
+		return
+	end
+	local vip = Config.GamePasses.VIP
+	if vip.Id ~= 0 then
+		MarketplaceService:PromptGamePassPurchase(player, vip.Id)
+	end
+end
+
 local farmButton = Ui.Button({
 	Position = UDim2.fromOffset(8, 38),
-	Size = UDim2.new(0.62, -12, 0, 50),
+	Size = UDim2.new(0.6, -12, 0, 50),
 	Text = "🕺 AURA FARM",
 	BackgroundColor3 = Color3.fromRGB(130, 70, 230),
 	Parent = poseBar,
@@ -210,40 +222,33 @@ local farmButton = Ui.Button({
 		return
 	end
 	local pose = poseAt(selectedPose)
-	if poseLocked(pose) and pose.Level then
-		openPanel("Levels")
-		return
-	end
 	if poseLocked(pose) then
-		local vip = Config.GamePasses.VIP
-		if vip.Id ~= 0 then
-			MarketplaceService:PromptGamePassPurchase(player, vip.Id)
-		end
-		return
+		selectedPose = 1
+		pose = poseAt(1)
 	end
 	Remotes.SetPose:FireServer(pose.Id)
 end)
+-- Knop met je gekozen pose: opent het pose menu
 local poseButton = Ui.Button({
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -8, 0, 38),
-	Size = UDim2.new(0.38, -4, 0, 50),
+	Size = UDim2.new(0.4, -4, 0, 50),
 	Text = "",
 	BackgroundColor3 = Colors.PanelLight,
 	Parent = poseBar,
 }, function()
-	selectedPose = selectedPose % #Config.Poses + 1
-	if player:GetAttribute("Posing") and not poseLocked(poseAt(selectedPose)) then
-		Remotes.SetPose:FireServer(poseAt(selectedPose).Id)
-	end
+	openPanel("Poses")
 end)
+
+local refreshPoseCards: () -> () = function() end -- wordt verderop ingevuld
 
 local function refreshPoseBar()
 	local pose = poseAt(selectedPose)
-	poseButton.Text = (if poseLocked(pose) then "🔒 " else "") .. pose.Name .. " ▶"
+	poseButton.Text = (pose.Icon or "🕺") .. " " .. pose.Name .. " ▼"
 	local posing = player:GetAttribute("Posing") ~= nil
-	local lockedText = if pose.Level then "🔒 LEVEL " .. pose.Level else "🔒 VIP POSE"
-	farmButton.Text = if posing then "STOP" elseif poseLocked(pose) then lockedText else "🕺 AURA FARM"
+	farmButton.Text = if posing then "⏹ STOP" else "🕺 AURA FARM"
 	farmButton.BackgroundColor3 = if posing then Colors.Red else Color3.fromRGB(130, 70, 230)
+	refreshPoseCards()
 end
 player:GetAttributeChangedSignal("Posing"):Connect(refreshPoseBar)
 
@@ -580,6 +585,7 @@ end)
 local _, shopBody = makePanel("Shop", "🛒 Shop")
 local shopList = makeList(shopBody, UDim2.new(), UDim2.fromScale(1, 1))
 local shopKey = ""
+local refreshShop: () -> ()
 
 local function addShopRow(order: number, title: string, description: string, buttonText: string, buttonColor: Color3, onClick)
 	local row = Ui.Create("Frame", {
@@ -625,10 +631,47 @@ local function inviteFriends()
 	end
 end
 
-local function refreshShop()
+-- Echte prijzen ophalen van Roblox (zoals je ze op create.roblox.com hebt ingesteld)
+local prices: { [string]: number } = {}
+local pricesLoading = false
+local function loadPrices()
+	if pricesLoading then
+		return
+	end
+	pricesLoading = true
+	task.spawn(function()
+		local function fetch(kind: string, id: number, infoType: Enum.InfoType)
+			if id == 0 then
+				return
+			end
+			local ok, info = pcall(function()
+				return MarketplaceService:GetProductInfo(id, infoType)
+			end)
+			if ok and info and type(info.PriceInRobux) == "number" then
+				prices[kind .. id] = info.PriceInRobux
+			end
+		end
+		for _, pass in Config.GamePasses do
+			fetch("Pass", pass.Id, Enum.InfoType.GamePass)
+		end
+		for _, product in Config.DevProducts do
+			fetch("Product", product.Id, Enum.InfoType.Product)
+		end
+		shopKey = "" -- opnieuw tekenen met de prijzen
+		refreshShop()
+	end)
+end
+
+local function priceText(kind: string, id: number, fallback: number?): string
+	local price = prices[kind .. id] or fallback
+	return if price then "R$ " .. price else "Buy"
+end
+
+function refreshShop()
 	if not state then
 		return
 	end
+	loadPrices()
 	local key = tostring(state.PaidRandomRestricted) .. tostring(state.StarterPackBought)
 	for passKey in Config.GamePasses do
 		key ..= tostring(state.Passes[passKey])
@@ -647,7 +690,7 @@ local function refreshShop()
 
 	for passKey, pass in Config.GamePasses do
 		local owned = state.Passes[passKey]
-		addShopRow(10 + pass.Order, pass.Name, pass.Description, if owned then "Owned" elseif pass.Id == 0 then "Soon" else "Buy", if owned then Colors.PanelLight else Colors.Green, function()
+		addShopRow(10 + pass.Order, pass.Name, pass.Description, if owned then "Owned ✓" elseif pass.Id == 0 then "Soon" else priceText("Pass", pass.Id, pass.Price), if owned then Colors.PanelLight else Colors.Green, function()
 			if pass.Id ~= 0 and not owned then
 				MarketplaceService:PromptGamePassPurchase(player, pass.Id)
 			end
@@ -656,7 +699,7 @@ local function refreshShop()
 	for _, product in Config.DevProducts do
 		local hidden = (product.Kind == "Aura" and state.PaidRandomRestricted) or (product.Kind == "Starter" and state.StarterPackBought)
 		if not hidden then
-			addShopRow(20 + product.Order, product.Name, product.Description, if product.Id == 0 then "Soon" else "Buy", Colors.Green, function()
+			addShopRow(20 + product.Order, product.Name, product.Description, if product.Id == 0 then "Soon" else priceText("Product", product.Id, product.Price), Colors.Green, function()
 				if product.Id ~= 0 then
 					MarketplaceService:PromptProductPurchase(player, product.Id)
 				end
@@ -855,6 +898,86 @@ for index in Config.PlaytimeGifts do
 		Remotes.ClaimGift:FireServer(index)
 	end)
 	giftButtons[index] = { Button = button, Reward = rewardLabel }
+end
+
+-- Poses panel: alle poses als kaartjes, met slotje als je hem nog niet hebt ------
+local _, posesBody = makePanel("Poses", "🕺 Choose your pose")
+Ui.Label({
+	Size = UDim2.new(1, 0, 0, 22),
+	Text = "Tap a pose to start aura farming with it!",
+	TextColor3 = Colors.SubText,
+	Parent = posesBody,
+})
+local poseGrid = Ui.Create("ScrollingFrame", {
+	Position = UDim2.fromOffset(0, 28),
+	Size = UDim2.new(1, 0, 1, -28),
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	ScrollBarThickness = 8,
+	AutomaticCanvasSize = Enum.AutomaticSize.Y,
+	CanvasSize = UDim2.new(),
+	Parent = posesBody,
+})
+Ui.Create("UIGridLayout", {
+	CellSize = UDim2.fromOffset(132, 126),
+	CellPadding = UDim2.fromOffset(8, 8),
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = poseGrid,
+})
+
+local poseCards = {}
+for index, pose in Config.Poses do
+	local card = Ui.Button({
+		Text = "",
+		LayoutOrder = index,
+		BackgroundColor3 = Colors.PanelLight,
+		Parent = poseGrid,
+	}, function()
+		if poseLocked(pose) then
+			unlockHint(pose)
+			return
+		end
+		selectedPose = index
+		Remotes.SetPose:FireServer(pose.Id)
+		local panel = panels.Poses
+		if panel and panel.Visible then
+			togglePanel("Poses")
+		end
+		refreshPoseBar()
+	end)
+	local icon = Ui.Label({ Size = UDim2.new(1, 0, 0, 52), Text = pose.Icon or "🕺", Parent = card })
+	local name = Ui.Label({ Position = UDim2.fromOffset(0, 54), Size = UDim2.new(1, 0, 0, 26), Text = pose.Name, Parent = card })
+	local status = Ui.Label({
+		Position = UDim2.fromOffset(0, 84),
+		Size = UDim2.new(1, 0, 0, 22),
+		Text = "",
+		Parent = card,
+	})
+	poseCards[index] = { Card = card, Icon = icon, Name = name, Status = status }
+end
+
+refreshPoseCards = function()
+	local posingId = player:GetAttribute("Posing")
+	for index, pose in Config.Poses do
+		local entry = poseCards[index]
+		if not entry then
+			continue
+		end
+		local locked = poseLocked(pose)
+		local selected = index == selectedPose
+		if locked then
+			entry.Status.Text = if pose.Level then "🔒 Level " .. pose.Level else "🔒 VIP"
+			entry.Status.TextColor3 = Colors.SubText
+			entry.Card.BackgroundColor3 = Color3.fromRGB(45, 40, 60)
+			entry.Icon.TextTransparency = 0.6
+		else
+			entry.Status.Text = if posingId == pose.Id then "✨ Farming!" elseif selected then "✓ Selected" else "Tap to use"
+			entry.Status.TextColor3 = if selected then Colors.Gold else Colors.Green
+			entry.Card.BackgroundColor3 = if selected then Color3.fromRGB(120, 70, 210) else Colors.PanelLight
+			entry.Icon.TextTransparency = 0
+		end
+	end
 end
 
 -- Levels panel (Level Road: wat krijg je bij welk level) ----------------
