@@ -50,7 +50,7 @@ Opslaan werkt pas als je de game één keer hebt gepubliceerd (**File → Publis
 | Opslaan | Je voortgang wordt elke minuut en bij weggaan opgeslagen |
 | Offline inkomen | Je krijgt 25% van je inkomen terwijl je weg bent (max 4 uur) |
 | Dagelijkse beloning | Elke dag claimen, met een streak tot dag 7 |
-| Codes | `AURAFARM`, `67`, `SIGMA` |
+| Codes | `AURAFARM`, `67`, `SIGMA`, `LAUNCH`, `ARENA` |
 | Leaderboards | 3 borden op het plein: top 10 Aura farmers, hoogste Aura Level en meeste battle wins van alle servers. In de spelerslijst zie je Aura, Level, Rebirths en Wins |
 | Shop | 4 gamepasses en 4 producten (Robux) |
 | Mobiel | Grote knoppen en de UI schaalt mee met het scherm |
@@ -69,7 +69,7 @@ Opslaan werkt pas als je de game één keer hebt gepubliceerd (**File → Publis
 
 1. Publiceer de game.
 2. Ga naar [create.roblox.com](https://create.roblox.com), open je game en maak de gamepasses aan bij **Monetization → Passes** en de producten bij **Monetization → Developer Products**.
-3. Kopieer de nummers (Id's) naar `src/shared/Config.luau` bij `Config.GamePasses` en `Config.DevProducts`. Zolang het Id `0` is, staat er "Soon" in de shop.
+3. Kopieer de nummers (Id's) naar `src/shared/Config.luau` bij `Config.GamePasses` en `Config.DevProducts`. Zolang het Id `0` is, staat er "Soon" in de shop. Is het Id ingevuld, dan laat de shop de echte prijs zien (bijvoorbeeld "R$ 249"). Bij elk item staat in `Config.luau` ook een prijs die we aanraden (`Price`). Test-aankopen in Studio zijn gratis.
 4. Vul bij de game de **Content Maturity vragenlijst** in en zeg dat er "paid random items" in zitten (je kunt met gekochte Aura rollen).
 
 **Regels voor kansen (loot boxes):** Roblox ziet rollen als "paid random items", omdat je Aura met Robux kunt kopen. Daarom laat de game altijd de kansen in procenten zien, en worden de Aura Packs verborgen voor spelers in landen met loot box regels (zoals Nederland en België). Luck kun je nooit met Robux kopen, alleen verdienen. Zo blijft de game binnen de regels en wordt hij niet verwijderd.

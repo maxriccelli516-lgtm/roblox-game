@@ -51,15 +51,19 @@ Config.Codes = {
 	AURAFARM = 500,
 	["67"] = 670,
 	SIGMA = 1000,
+	LAUNCH = 2500,
+	ARENA = 1500,
 }
 
--- Gamepasses: vul hier het Id in nadat je ze op Roblox hebt aangemaakt (0 = staat uit)
--- Order = volgorde in de shop
+-- ROBUX AANKOPEN
+-- Gamepasses: vul hier het Id in nadat je ze op Roblox hebt aangemaakt (0 = staat uit, de shop zegt dan "Soon").
+-- Order = volgorde in de shop. Price = de prijs die we aanraden (in Robux). De echte prijs stel je in op
+-- create.roblox.com en de shop laat automatisch die echte prijs zien.
 Config.GamePasses = {
-	VIP = { Id = 0, Order = 1, Name = "VIP", Description = "+20% Aura, faster Aura Meter, 2 extra poses, VIP tag" },
-	DoubleAura = { Id = 0, Order = 2, Name = "2x Aura", Description = "Double ALL your Aura forever" },
-	AutoCollect = { Id = 0, Order = 3, Name = "Auto Collect", Description = "Your Aura is collected automatically" },
-	FastDroppers = { Id = 0, Order = 4, Name = "Fast Generators", Description = "Your generators work 25% faster" },
+	VIP = { Id = 0, Order = 1, Price = 249, Name = "VIP", Description = "+20% Aura, faster Aura Meter, 2 extra poses, VIP tag" },
+	DoubleAura = { Id = 0, Order = 2, Price = 399, Name = "2x Aura", Description = "Double ALL your Aura forever" },
+	AutoCollect = { Id = 0, Order = 3, Price = 149, Name = "Auto Collect", Description = "Your Aura is collected automatically" },
+	FastDroppers = { Id = 0, Order = 4, Price = 199, Name = "Fast Generators", Description = "Your generators work 25% faster" },
 }
 Config.VipBonus = 1.2
 
@@ -67,10 +71,10 @@ Config.VipBonus = 1.2
 -- Kind: "Aura" = geeft X minuten van je inkomen (verborgen voor landen met loot box regels,
 -- omdat je met Aura kunt rollen), "Boost" = tijdelijke 2x Aura, "Starter" = eenmalig startpakket
 Config.DevProducts = {
-	StarterPack = { Id = 0, Order = 1, Kind = "Starter", Name = "Starter Pack (one time)", Description = "30 min 2x Aura + exclusive Starter Spark aura", BoostMinutes = 30 },
-	DoubleBoost = { Id = 0, Order = 2, Kind = "Boost", Name = "2x Aura Boost", Description = "Double Aura for 15 minutes (stacks)", BoostMinutes = 15 },
-	AuraPackSmall = { Id = 0, Order = 3, Kind = "Aura", Name = "Aura Pack", Description = "10 minutes of your Aura income", Minutes = 10, Minimum = 1000 },
-	AuraPackBig = { Id = 0, Order = 4, Kind = "Aura", Name = "Mega Aura Pack", Description = "60 minutes of your Aura income", Minutes = 60, Minimum = 10000 },
+	StarterPack = { Id = 0, Order = 1, Price = 49, Kind = "Starter", Name = "Starter Pack (one time)", Description = "30 min 2x Aura + exclusive Starter Spark aura", BoostMinutes = 30 },
+	DoubleBoost = { Id = 0, Order = 2, Price = 29, Kind = "Boost", Name = "2x Aura Boost", Description = "Double Aura for 15 minutes (stacks)", BoostMinutes = 15 },
+	AuraPackSmall = { Id = 0, Order = 3, Price = 25, Kind = "Aura", Name = "Aura Pack", Description = "10 minutes of your Aura income", Minutes = 10, Minimum = 1000 },
+	AuraPackBig = { Id = 0, Order = 4, Price = 99, Kind = "Aura", Name = "Mega Aura Pack", Description = "60 minutes of your Aura income", Minutes = 60, Minimum = 10000 },
 }
 
 -- Aura farmen met poses (zoals de boat kid): stil staan in een pose vult je Aura Meter
@@ -78,14 +82,14 @@ Config.MeterFillSeconds = 30 -- zo lang poseren voor een volle meter
 Config.PeakAuraSeconds = 45 -- zo lang duurt PEAK AURA
 Config.PeakAuraMultiplier = 2
 Config.Poses = {
-	{ Id = "BoatKid", Name = "Boat Kid" },
-	{ Id = "SkyPoint", Name = "Sky Point" },
-	{ Id = "Sigma", Name = "Sigma Stare", Vip = true },
-	{ Id = "Hero", Name = "Main Character", Vip = true },
+	{ Id = "BoatKid", Name = "Boat Kid", Icon = "🚣" },
+	{ Id = "SkyPoint", Name = "Sky Point", Icon = "☝️" },
+	{ Id = "Sigma", Name = "Sigma Stare", Icon = "😎", Vip = true },
+	{ Id = "Hero", Name = "Main Character", Icon = "🦸", Vip = true },
 	-- Deze poses krijg je door levels te halen (zie Levels.luau)
-	{ Id = "Lean", Name = "Aura Lean", Level = 3 },
-	{ Id = "Levitate", Name = "Levitate", Level = 10 },
-	{ Id = "Wings", Name = "Wings Out", Level = 20 },
+	{ Id = "Lean", Name = "Aura Lean", Icon = "😌", Level = 3 },
+	{ Id = "Levitate", Name = "Levitate", Icon = "🧘", Level = 10 },
+	{ Id = "Wings", Name = "Wings Out", Icon = "🕊️", Level = 20 },
 }
 -- PEAK AURA geeft ook meteen een zak Aura: zoveel minuten van je inkomen
 Config.PeakAuraRewardMinutes = 1
