@@ -60,10 +60,10 @@ Config.Codes = {
 -- Order = volgorde in de shop. Price = de prijs die we aanraden (in Robux). De echte prijs stel je in op
 -- create.roblox.com en de shop laat automatisch die echte prijs zien.
 Config.GamePasses = {
-	VIP = { Id = 0, Order = 1, Price = 249, Name = "VIP", Description = "+20% Aura, faster Aura Meter, 2 extra poses, VIP tag" },
-	DoubleAura = { Id = 0, Order = 2, Price = 399, Name = "2x Aura", Description = "Double ALL your Aura forever" },
-	AutoCollect = { Id = 0, Order = 3, Price = 149, Name = "Auto Collect", Description = "Your Aura is collected automatically" },
-	FastDroppers = { Id = 0, Order = 4, Price = 199, Name = "Fast Generators", Description = "Your generators work 25% faster" },
+	VIP = { Id = 2025926962, Order = 1, Price = 249, Name = "VIP", Description = "+20% Aura, faster Aura Meter, 2 extra poses, VIP tag" },
+	DoubleAura = { Id = 2026670933, Order = 2, Price = 399, Name = "2x Aura", Description = "Double ALL your Aura forever" },
+	AutoCollect = { Id = 2025812907, Order = 3, Price = 149, Name = "Auto Collect", Description = "Your Aura is collected automatically" },
+	FastDroppers = { Id = 2026772923, Order = 4, Price = 199, Name = "Fast Generators", Description = "Your generators work 25% faster" },
 }
 Config.VipBonus = 1.2
 
@@ -71,10 +71,10 @@ Config.VipBonus = 1.2
 -- Kind: "Aura" = geeft X minuten van je inkomen (verborgen voor landen met loot box regels,
 -- omdat je met Aura kunt rollen), "Boost" = tijdelijke 2x Aura, "Starter" = eenmalig startpakket
 Config.DevProducts = {
-	StarterPack = { Id = 0, Order = 1, Price = 49, Kind = "Starter", Name = "Starter Pack (one time)", Description = "30 min 2x Aura + exclusive Starter Spark aura", BoostMinutes = 30 },
-	DoubleBoost = { Id = 0, Order = 2, Price = 29, Kind = "Boost", Name = "2x Aura Boost", Description = "Double Aura for 15 minutes (stacks)", BoostMinutes = 15 },
-	AuraPackSmall = { Id = 0, Order = 3, Price = 25, Kind = "Aura", Name = "Aura Pack", Description = "10 minutes of your Aura income", Minutes = 10, Minimum = 1000 },
-	AuraPackBig = { Id = 0, Order = 4, Price = 99, Kind = "Aura", Name = "Mega Aura Pack", Description = "60 minutes of your Aura income", Minutes = 60, Minimum = 10000 },
+	StarterPack = { Id = 3717958107, Order = 1, Price = 49, Kind = "Starter", Name = "Starter Pack (one time)", Description = "30 min 2x Aura + exclusive Starter Spark aura", BoostMinutes = 30 },
+	DoubleBoost = { Id = 3717958216, Order = 2, Price = 29, Kind = "Boost", Name = "2x Aura Boost", Description = "Double Aura for 15 minutes (stacks)", BoostMinutes = 15 },
+	AuraPackSmall = { Id = 3717958271, Order = 3, Price = 25, Kind = "Aura", Name = "Aura Pack", Description = "10 minutes of your Aura income", Minutes = 10, Minimum = 1000 },
+	AuraPackBig = { Id = 3717958323, Order = 4, Price = 99, Kind = "Aura", Name = "Mega Aura Pack", Description = "60 minutes of your Aura income", Minutes = 60, Minimum = 10000 },
 }
 
 -- Aura farmen met poses (zoals de boat kid): stil staan in een pose vult je Aura Meter
